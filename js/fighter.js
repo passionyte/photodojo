@@ -25,7 +25,7 @@ export class Fighter extends Object {
     update() {
         this.bounds = stateBounds[this.state]
 
-        const floorPos = (FLOOR - this.size.h)
+        const floorPos = (FLOOR - 258)
         this.grounded = (this.bottom >= floorPos && this.velocity.y == 0)
 
         if (this.velocity.y != 0) {
