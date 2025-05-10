@@ -1,3 +1,6 @@
+// Passionyte 2025
+'use strict'
+
 export const DEBUG = true
 
 export function d(id) {
@@ -26,7 +29,8 @@ export const KEYS = {
     W:87,
     A:65,
     S:83,
-    D:68
+    D:68,
+    P:80
    };
    
 // What each set of keyboard codes 'does'
@@ -34,11 +38,12 @@ export const keyClasses = {
     jump: [KEYS.W, KEYS.UP_ARROW, KEYS.SPACE],
     crouch: [KEYS.S, KEYS.DOWN_ARROW],
     left: [KEYS.A, KEYS.LEFT_ARROW],
-    right: [KEYS.D, KEYS.RIGHT_ARROW]
+    right: [KEYS.D, KEYS.RIGHT_ARROW],
+    action: [KEYS.P]
 }
 
 export const FLOOR = (h - 100)
-export const GRAVITY = 2
+export const GRAVITY = 1
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)
@@ -58,8 +63,11 @@ export function newImage(n, w, h) {
     return i
 }
 
+export function checkTimer(s, d) {
+    return ((performance.now() - s) > d)
+}
 
-export class Object {
+export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {
         x: 0, 
         y: 0
@@ -75,29 +83,43 @@ export class Object {
         h: 0
     }
 
-    handlesY
+    offset = { // Intended for hitbox usage
+        x: 0,
+        y: 0
+    }
+
+    handlesY // Does the extended class handle Y itself (intended for implementations such as Gravity)
+
+    get width() {
+        return (this.size.w - this.offset.x)
+    }
+
+    get height() {
+        return (this.size.h - this.offset.y)
+    }
 
     get left() {
-        return this.position.x
+        return (this.position.x + this.offset.x)
     }
 
     get right() {
-        return (this.left + this.size.w)
+        return (this.left + this.width)
     }
 
     get top() {
-        return this.position.y
+        return (this.position.y + this.offset.y)
     }
 
     get bottom() {
-        return (this.top + this.size.h)
+        return (this.top + this.height)
     }
 
     update() {
+        // basic boundary implementation
         const diff = (this.position.x + this.velocity.x)
 
-        if (diff >= (w - this.size.w)) {
-            this.position.x = (w - this.size.w)
+        if (diff >= (w - this.width)) {
+            this.position.x = (w - this.width)
         }
         else if (diff <= 0) {
             this.position.x = 0
@@ -107,24 +129,24 @@ export class Object {
         }
 
         if (!this.handlesY) this.position.y += this.velocity.y
-
-        if (DEBUG) this.draw()
     }
 
-    draw() {
-        CTX.fillStyle = "red"
-        CTX.fillRect(this.left, this.top, this.size.w, this.size.h)
-        CTX.fillStyle = "blue"
+    draw(color) { // Only called in debug mode
+        CTX.fillStyle = ((color) && color) || "rgba(255, 0, 0, 0.5)"
+        CTX.fillRect(this.left, this.top, this.width, this.height)
+        CTX.fillStyle = "rgba(0, 0, 255, 0.5)"
         CTX.fillRect(this.left, this.top, 4, 4)
     }
 
-    constructor(x, y, xv, yv, w, h, hy) {
+    constructor(x, y, xv, yv, w, h, o = {x: 0, y: 0}, hy = false) {
         this.position.x = x
         this.position.y = y
         this.velocity.x = xv
         this.velocity.y = yv
         this.size.w = w
         this.size.h = h
+        
+        this.offset = o
 
         this.handlesY = hy
     }

@@ -1,11 +1,18 @@
+// Passionyte 2025
+'use strict'
+
 import { CANVAS, CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR } from "./globals.js"
-import { Fighter, Fighters } from "./fighter.js"
+import { Fighter, Fighters, Hitboxes } from "./fighter.js"
 
 let NOW = performance.now()
 let frame_time = NOW
 const P1 = new Fighter(cenX, FLOOR, 1)
+const P2 = new Fighter((w - 200), FLOOR, false)
+P2.velocity.x = 0
 
-globalThis.F = Fighter
+globalThis.F = Fighters
+
+let MODE = 1 // 1 is singleplayer, 2 is multiplayer
 
 // Input Manager
 const downKeys = {}
@@ -14,7 +21,7 @@ const downKeys = {}
 document.addEventListener("keydown", keypress);
 document.addEventListener("keyup", keyup);
 
-function isKeyFromClassDown(c) {
+export function isKeyFromClassDown(c) {
     let result = false
 
     const cl = keyClasses[c]
@@ -40,12 +47,19 @@ function keypress(event) {
     if (keyClasses.jump.includes(key)) {
         P1.jump()
     }
+    else if (keyClasses.action.includes(key)) {
+        if (isKeyFromClassDown(P1.facing)) {
+            P1.punch()
+        }
+        else if (P1.velocity.x == 0) {
+            P1.kick()
+        }
+    }
 }
   
-  /**
-   * The user released a key on the keyboard
-   */
-  
+/**
+* The user released a key on the keyboard
+*/
 function keyup(event) {
     const key = event.keyCode
     if (!downKeys[key]) return
@@ -66,22 +80,51 @@ function update() {
 
     clearCanvas()
 
-    for (const f of Fighters) {
-        if (f.plr == 1) {// temp
-            if (f.grounded) {
+    for (const a of Fighters) {
+        if (a.plr) {// temp
+            if (a.grounded && a.state != "punch" && a.state != "kick") {
                 let xv = 0
-                if (f.state != "crouch" && f.state != "jump") {
+                if (a.state != "crouch" && a.state != "jump") {
                     xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
-                    f.velocity.x = xv
+                    a.velocity.x = xv
                 }
                 
-                if (xv == 0) f.state = ((isKeyFromClassDown("crouch")) && "crouch") || "stance"
+                const crouchDesired = (isKeyFromClassDown("crouch")) 
+                if (xv == 0) {
+                    a.state = ((crouchDesired) && "crouch") || "stance"
+                    a.marchLock = (crouchDesired)
+                }
+                else {
+                    a.marchLock = false
+                }
+            }
+        }
+        else { // NPC
+            if (MODE == 1) {
+                a.facing = "left"
+
+                // insert AI code here.
+
+                // if (Math.random() < 0.01) a.punch()
             }
         }
         
-        f.update()
+        a.update()
     }
 
+    for (const h of Hitboxes) {
+        for (const a of Fighters) {
+            const col = h.check(a)
+
+            if (col) {
+                a.onDamage(h.dmg)
+                h.remove()
+                break
+            }
+        }
+
+        h.update()
+    }
 
     if (DEBUG) {
         CTX.fillStyle = "red"
@@ -91,10 +134,15 @@ function update() {
         CTX.fillText("debug mode", 20, 40, 200)
         CTX.fillText(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80, 150)
         CTX.fillText(`state: ${P1.state}`, 20, 120, 150)
-        CTX.fillText(`x: ${P1.left} (v: ${P1.velocity.x}), y: ${P1.top} (v: ${P1.velocity.y})`, 20, 160, 300)
+        CTX.fillText(`x: ${Math.round(P1.left)} (v: ${Math.round(P1.velocity.x)}), y: ${Math.round(P1.top)} (v: ${Math.round(P1.velocity.y)})`, 20, 160, 300)
         CTX.fillText(`grounded: ${P1.grounded}`, 20, 200, 150)
+        CTX.fillText(`m-lock: ${P1.marchLock}`, 20, 240, 150)
+        CTX.fillText(`attacking: ${(P1.whenAttacking != 0)}`, 20, 280, 150)
+        CTX.fillText(`stunned: ${(P1.whenStunned != 0)}`, 20, 320, 150)
 
         CTX.fillRect(0, FLOOR, w, 2)
     }
 }
 update()
+
+export default { isKeyFromClassDown }
