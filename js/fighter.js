@@ -276,25 +276,28 @@ export class Fighter extends Object {
             const w = this.bounds.w;
             const h = this.bounds.h;
 
-            const pivotX = this.left + w/2;
-            const pivotY = this.top + h;
+            // Correct pivot point for rotation
+            const pivotX = this.left + w / 2;
+            const pivotY = this.top + h / 2; // Center the pivot point vertically
 
             CTX.save();
             CTX.translate(pivotX, pivotY);
 
-            CTX.rotate(-Math.PI / 2);
-
-            const lefty = (this.facing == "left")
+            const lefty = (this.facing == "left");
             if (lefty) {
-                CTX.translate(-w, 0);
-                CTX.scale(-1, 1);
+                CTX.rotate(Math.PI / 2); // Rotate clockwise for left-facing fighters
+                CTX.translate(-w / 2, -h / 2); // Center the fighter within the hitbox
+                CTX.scale(-1, 1); // Flip horizontally
+            } else {
+                CTX.rotate(-Math.PI / 2); // Rotate counterclockwise for right-facing fighters
+                CTX.translate(-w / 2, -h / 2); // Center the fighter within the hitbox
             }
 
             CTX.drawImage(
                 this.img,
                 this.bounds.x, this.bounds.y,
-                w, h,                        
-                0, -h + 100,                     
+                w, h,
+                ((lefty) && -195) || -55, 0,
                 w, h
             );
             CTX.restore();
