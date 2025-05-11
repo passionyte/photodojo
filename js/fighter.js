@@ -1,37 +1,22 @@
 // Passionyte 2025
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, newImage, w, h, checkTimer } from "./globals.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, newImage, w, h, checkTimer, collision, collisionFighter } from "./globals.js"
 import { isKeyFromClassDown } from "./main.js"
 
 export const defHP = 20
 export const stateBounds = {
-    stance: {x: 876, y: 476, w: 137, h: 258},
-    jump: {x: 354, y: 1102, w: 110, h: 269, offset: {x: 27, y: 0}},
-    march: {x: 76, y: 791, w: 157, h: 261},
-    crouch: {x: 80, y: 1187, w: 122, h: 181, offset: {x: 15, y: 80}},
-    punch: {x: 589, y: 480, w: 217, h: 252},
-    kick: {x: 579, y: 794, w: 194, h: 259},
-    hurt: {x: 347, y: 791, w: 138, h: 262},
-    shoot: {x: 813, y: 820, w: 214, h: 233}
+    stance: { x: 876, y: 476, w: 137, h: 258 },
+    jump: { x: 354, y: 1102, w: 110, h: 269, offset: { x: 27, y: 0 } },
+    march: { x: 76, y: 791, w: 157, h: 261 },
+    crouch: { x: 80, y: 1187, w: 122, h: 181, offset: { x: 15, y: 80 } },
+    punch: { x: 589, y: 480, w: 217, h: 252 },
+    kick: { x: 579, y: 794, w: 194, h: 259 },
+    hurt: { x: 347, y: 791, w: 138, h: 262 },
+    shoot: { x: 813, y: 820, w: 214, h: 233 }
 }
 export const Fighters = []
 export const Hitboxes = []
-
-function setBaseStance(a) {
-    let crouchDesired = false
-    let xv = 0
-
-    if (a.plr) {
-        crouchDesired = ((isKeyFromClassDown("crouch")))
-        xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
-    }
-
-    a.velocity.x = xv
-
-    a.marchLock = (crouchDesired)
-    a.state = ((!crouchDesired) && ((xv != 0) && "march") || "stance") || "crouch"
-}
 
 export class Hitbox extends Object {
     dmg // damage applied to player
@@ -49,14 +34,7 @@ export class Hitbox extends Object {
     check(o) {
         if (o === this.creator || o.whenStunned) return false
 
-        const col = (
-            this.right > o.left &&
-            this.left < o.right &&
-            this.bottom > o.top &&
-            this.top < o.bottom
-        )
-
-        return col
+        return (collision(this, o))
     }
 
     update() {
@@ -101,21 +79,39 @@ export class Hitbox extends Object {
 
 export class Fighter extends Object {
     hp
+    maxHP // set to hp on creation
     state // kicking.. punching.. fireball.. etc..
     grounded = true
     name // name of the fighter. retrieved from imgs or custom generated (soon lol)
     plr // will be undefined if fighter is a npc
 
     lastStep // only used when state is march
-    facing // direction the player is facing, either left or right
+    facing // direction the fighter is facing, either left or right
     whenStunned = 0 // for use with the below timer
     stunTimer = 0 // for states such as 'hurt'
     marchLock = false // locks marching / stance during jumping, crouching or other states
     whenAttacking = 0 // for use with the below timer
     attackTimer = 0 // for states such as 'punch' or 'kick' or 'shoot', etc.
+    fallen = false // render the fighter fallen, to be used in conjunction with state 'hurt'
+    bounces = 0 // for 'fallen'; lets the fighter bounce x amount of times when falling to the ground
 
     img
     bounds // derived from state in stateBounds
+
+    setBaseStance() {
+        let crouchDesired = false
+        let xv = 0
+
+        if (this.plr) {
+            crouchDesired = ((isKeyFromClassDown("crouch")))
+            xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
+        }
+
+        this.velocity.x = xv
+
+        this.marchLock = (crouchDesired)
+        this.state = ((crouchDesired) && "crouch") || ((xv != 0) && "march") || "stance"
+    }
 
     update() {
         this.bounds = stateBounds[this.state]
@@ -123,11 +119,11 @@ export class Fighter extends Object {
             this.offset = this.bounds.offset
         }
         else {
-            this.offset = {x: 0, y: 0} // base
+            this.offset = { x: 0, y: 0 } // base
         }
 
         const floorPos = (FLOOR - 258) // 258 is the stance height
-        this.grounded = (this.bottom >= floorPos && this.velocity.y == 0)
+        this.grounded = (!this.fallen && (this.bottom >= floorPos && this.velocity.y == 0))
 
         if (this.velocity.y != 0) {
             let diff = (this.position.y += this.velocity.y)
@@ -135,26 +131,41 @@ export class Fighter extends Object {
             if (diff > floorPos) {
                 this.position.y = floorPos
                 this.velocity.y = 0
-            } 
+            }
             else {
                 this.position.y = diff
             }
         }
 
-        if (!this.whenStunned) {
+        if (!this.whenStunned || this.fallen) {
             if (!this.grounded) { // in air
-                if (this.state != "kick") this.state = "jump"
-                
+                if (this.state != "kick" && !this.fallen) this.state = "jump"
+
                 const diff = (this.position.y + GRAVITY)
 
                 this.velocity.y += GRAVITY
 
                 if (diff >= floorPos) { // land
-                    this.whenAttacking = 0
-                    this.attackTimer = 0
-                    this.marchLock = false
-                    this.position.y = floorPos
-                    this.velocity.y = 0
+                    if (!this.fallen) {
+                        this.whenAttacking = 0
+                        this.attackTimer = 0
+                        this.marchLock = false
+                        this.position.y = floorPos
+                        this.velocity.y = 0
+                    }
+                    else {
+                        if (this.bounces > 0) {
+                            this.velocity.y -= (8 - (3 - this.bounces))
+
+                            console.log(this.velocity.x)
+                            if (this.velocity.x != 0) this.velocity.x *= 0.75
+                        }
+                        else {
+                            this.position.y = floorPos
+                            this.velocity.x = 0
+                        }
+                        this.bounces--
+                    }
                 }
                 else { // falling
                     this.position.y = diff
@@ -178,26 +189,48 @@ export class Fighter extends Object {
                     this.whenAttacking = 0
                     this.attackTimer = 0
 
-                    /*const crouchDesired = ((isKeyFromClassDown("crouch")))
-                    const xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
-                    this.velocity.x = xv
-
-                    this.marchLock = (crouchDesired)
-                    this.state = ((!crouchDesired) && ((xv != 0) && "march") || "stance") || "crouch"*/
-                    setBaseStance(this)
+                    this.setBaseStance()
                 }
             }
-        }
-        else {
+
             if (checkTimer(this.whenStunned, this.stunTimer)) {
+                console.log("unstunning")
+
                 this.whenStunned = 0
                 this.stunTimer = 0
 
-                setBaseStance(this)
+                this.setBaseStance()
 
+                if (this.fallen) {
+                    this.fallen = false
+                }
                 // fix player pos
             }
         }
+
+        /*let isObstructed
+        for (const a of Fighters) {
+            if (a.plr != this.plr) {
+                isObstructed = collisionFighter(this, a)
+
+                if (isObstructed) break
+            }
+        }
+        
+        if (isObstructed && this.velocity.x == 0 && !this.whenStunned) {
+            const nx = (isObstructed == "left" && 2) || ((isObstructed == "right") && -2) || 0
+            if (nx != 0) {
+                this.beingPushed = true
+                this.velocity.x = nx
+            }
+        }
+        else {
+            if (this.beingPushed) {
+                this.beingPushed = false
+                //this.velocity.x = 0
+                this.setBaseStance()
+            }
+        }*/
 
         super.update()
         this.draw()
@@ -207,7 +240,7 @@ export class Fighter extends Object {
         if (this.state == "march") {
             this.bounds = stateBounds.stance
             const NOW = performance.now()
-            
+
             if (!this.lastStep) {
                 this.lastStep = NOW
             }
@@ -224,20 +257,48 @@ export class Fighter extends Object {
             }
         }
 
-        if (this.facing == "left") {
-            const w = this.bounds.w
-            const h = this.bounds.h
+        if (!this.fallen) {
+            if (this.facing == "left") {
+                const w = this.bounds.w
+                const h = this.bounds.h
 
-            CTX.save()
-            CTX.translate((this.left + (w / 2)), (this.top + (h / 2)))
-            CTX.scale(-1, 1)
-            CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -(w / 2), -(h / 2), w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
-            CTX.restore()
-        } 
-        else {
-            CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.bounds.w, this.bounds.h)
+                CTX.save()
+                CTX.translate((this.left + (w / 2)), (this.top + (h / 2)))
+                CTX.scale(-1, 1)
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -(w / 2), -(h / 2), w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
+                CTX.restore()
+            }
+            else {
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.bounds.w, this.bounds.h)
+            }
         }
-        
+        else {
+            const w = this.bounds.w;
+            const h = this.bounds.h;
+
+            const pivotX = this.left + w/2;
+            const pivotY = this.top + h;
+
+            CTX.save();
+            CTX.translate(pivotX, pivotY);
+
+            CTX.rotate(-Math.PI / 2);
+
+            const lefty = (this.facing == "left")
+            if (lefty) {
+                CTX.translate(-w, 0);
+                CTX.scale(-1, 1);
+            }
+
+            CTX.drawImage(
+                this.img,
+                this.bounds.x, this.bounds.y,
+                w, h,                        
+                0, -h + 100,                     
+                w, h
+            );
+            CTX.restore();
+        }
         if (DEBUG) super.draw(!this.plr && "rgba(100, 100, 100, 0.5)")
     }
 
@@ -248,9 +309,10 @@ export class Fighter extends Object {
         }
     }
 
-    onDamage(dmg) {
-        console.log(`ow! Fighter ${this.plr || "NPC"} took ${dmg} damage`)
+    onDamage(dmg, x) {
+        const fromRight = (x > this.position.x)
 
+        this.velocity.x = ((((fromRight) && -1) || 1) * (dmg * 1.5))
         this.marchLock = true
 
         if (this.whenAttacking) {
@@ -258,15 +320,15 @@ export class Fighter extends Object {
             this.attackTimer = 0
         }
 
+        this.hp -= dmg
         this.state = "hurt"
-
         this.whenStunned = performance.now()
-        
+
         if ((dmg >= 4) || !this.grounded) {
             this.stunTimer = 1200
-
-            // flop on the floor like a dying fish
-            this.velocity.y = 10
+            this.fallen = true
+            this.bounces = 3
+            this.velocity.y = -10
         }
         else {
             this.stunTimer = 300
@@ -315,6 +377,8 @@ export class Fighter extends Object {
         super(x, y, bounds.x, bounds.y, bounds.w, bounds.h, true)
 
         this.hp = hp
+        this.maxHP = hp
+
         this.state = state
         this.name = name
         this.plr = plr

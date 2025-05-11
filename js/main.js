@@ -1,7 +1,7 @@
 // Passionyte 2025
 'use strict'
 
-import { CANVAS, CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR } from "./globals.js"
+import { CANVAS, CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, newImage, ImageMemory } from "./globals.js"
 import { Fighter, Fighters, Hitboxes } from "./fighter.js"
 
 let NOW = performance.now()
@@ -67,6 +67,13 @@ function keyup(event) {
     downKeys[key] = null
 }
 
+// Image preloads
+
+newImage("healthbar.png")
+newImage("healthfill.png")
+newImage("shadow.png")
+newImage("plricon.png")
+
 function update() {
     requestAnimationFrame(update)
 
@@ -80,24 +87,11 @@ function update() {
 
     clearCanvas()
 
+    // Handle fighters
+
     for (const a of Fighters) {
         if (a.plr) {// temp
-            if (a.grounded && a.state != "punch" && a.state != "kick") {
-                let xv = 0
-                if (a.state != "crouch" && a.state != "jump") {
-                    xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
-                    a.velocity.x = xv
-                }
-                
-                const crouchDesired = (isKeyFromClassDown("crouch")) 
-                if (xv == 0) {
-                    a.state = ((crouchDesired) && "crouch") || "stance"
-                    a.marchLock = (crouchDesired)
-                }
-                else {
-                    a.marchLock = false
-                }
-            }
+            if (a.grounded && !a.whenAttacking && !a.whenStunned) a.setBaseStance()
         }
         else { // NPC
             if (MODE == 1) {
@@ -105,26 +99,37 @@ function update() {
 
                 // insert AI code here.
 
-                // if (Math.random() < 0.01) a.punch()
+                //a.velocity.x = -4
+                if (Math.random() < 0.1) a.kick()
             }
         }
         
         a.update()
     }
 
+    // Handle hitboxes
+
     for (const h of Hitboxes) {
         for (const a of Fighters) {
-            const col = h.check(a)
+            if (a.hp > 0) {
+                const col = h.check(a)
 
-            if (col) {
-                a.onDamage(h.dmg)
-                h.remove()
-                break
+                if (col) {
+                    a.onDamage(h.dmg, h.position.x)
+                    h.remove()
+                    break
+                }
             }
         }
 
         h.update()
     }
+
+    // Handle P1 health bar and icon
+
+    CTX.drawImage(ImageMemory["plricon.png"], 0, 0, 32, 32, 35, 25, 64, 64) 
+    CTX.drawImage(ImageMemory["healthfill.png"], 0, 0, 128, 16, 112, 40, (158 * (P1.hp / P1.maxHP)), 32)
+    CTX.drawImage(ImageMemory["healthbar.png"], 0, 0, 92, 16, 100, 40, 184, 32) 
 
     if (DEBUG) {
         CTX.fillStyle = "red"

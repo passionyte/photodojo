@@ -19,6 +19,8 @@ export const CTX = CANVAS.getContext("2d")
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
 
+export const ImageMemory = {}
+
 // Some convenient keyboard codes
 export const KEYS = {
     SPACE:32,
@@ -57,14 +59,55 @@ export function clamp(x, min, max) {
 }
 
 export function newImage(n, w, h) {
-    const i = new Image()
+    let i = ImageMemory[n]
+    if (i) return i
+
+    i = new Image()
     i.src = `../imgs/${n}`
+
+    ImageMemory[n] = i
 
     return i
 }
 
 export function checkTimer(s, d) {
+    if (s <= 0 || d <= 0) return
+
     return ((performance.now() - s) > d)
+}
+
+export function collision(o0, o1) {
+     const col = (
+            o0.right > o1.left &&
+            o0.left < o1.right &&
+            o0.bottom > o1.top &&
+            o0.top < o1.bottom
+        )
+
+    return col
+}
+
+export function collisionFighter(fighterA, fighterB) {
+    // Get the positions and dimensions of both fighters
+    const aLeft = fighterA.left;
+    const aRight = fighterA.left + fighterA.bounds.w;
+    const aTop = fighterA.top;
+    const aBottom = fighterA.top + fighterA.bounds.h;
+
+    const bLeft = fighterB.left;
+    const bRight = fighterB.left + fighterB.bounds.w;
+    const bTop = fighterB.top;
+    const bBottom = fighterB.top + fighterB.bounds.h;
+
+    // Check for overlap between the two bounding boxes
+    if (aRight > bLeft && aLeft < bRight && aBottom > bTop && aTop < bBottom) {
+        // Calculate the direction of the collision
+        if (aRight > bLeft && aLeft < bLeft) return 'right';   // Fighter A is on the left of Fighter B, collision from the right
+        if (aLeft < bRight && aRight > bRight) return 'left';   // Fighter A is on the right of Fighter B, collision from the left
+        if (aBottom > bTop && aTop < bTop) return 'down';       // Fighter A is above Fighter B, collision from below
+        if (aTop < bBottom && aBottom > bBottom) return 'up';   // Fighter A is below Fighter B, collision from above
+    }
+    return null; // No collision
 }
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
