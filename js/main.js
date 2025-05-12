@@ -15,8 +15,10 @@ export const initialLeft = 0
 export const initialRight = w
 globalThis.leftConstraint = initialLeft
 globalThis.rightConstraint = initialRight
+let distSinceLastGuy = 0
+const distBetweenGuys = w
 
-let enemiesRemaining = 100
+globalThis.enemiesRemaining = 100
 
 // Background Variables
 let bg0x = 0
@@ -24,7 +26,7 @@ let bg1x = w
 
 const P1 = new Fighter(cenX, (FLOOR - 258), 1)
 
-new Fighter(cenX + 200, (FLOOR - 258))
+const Test = new Fighter(cenX + 200, (FLOOR - 258))
 
 // Input Manager
 const downKeys = {}
@@ -90,6 +92,35 @@ function keyup(event) {
 new Animator("enemies", "flashframe", 1000, undefined, 5, singlePlayerIntro)
 new Animator("attack", "frame", 200, 500, 11)
 new Animator("ready", "frame", 50, 1000, 5)
+new Animator("nav", "frame", 250, 500, 5)
+
+function strToUINum(str) { // improve later. this is overengineered ain't it.
+    let result = ""
+
+    let num = str
+    str = str.toString()
+
+    if (num < 100) {
+        result += "0"
+    }
+    else {
+        const s = str[0]
+        result += s
+        str = str.replace(s, "")
+    }
+
+    if (num < 10) {
+        result += "0"
+    }
+    else {
+        const s = str[0]
+        result += s
+        str = str.replace(s, "")
+    }
+    result += str[0]
+
+    return result
+}
 
 function singlePlayerIntro(cb) {
     if (!cb) {
@@ -141,6 +172,16 @@ function update() {
     if (bg0x < (leftConstraint - w)) bg0x = (bg1x + w)
     if (bg1x < (leftConstraint - w)) bg1x = (bg0x + w)
 
+    // Single player NPCS
+
+    if (MODE == 1) {
+        if (P1.left > (distSinceLastGuy + distBetweenGuys)) {
+            console.log("creating new guy")
+            new Fighter(P1.left + w, (FLOOR - 258))
+            distSinceLastGuy = P1.left
+        }
+    }
+
     // Handle fighters
 
     for (const a of Fighters) {
@@ -153,8 +194,7 @@ function update() {
 
                 // insert AI code here.
 
-                //a.velocity.x = -4
-                //if (Math.random() < 0.1) a.kick()
+                if (Math.random() < 0.01) a.punch()
             }
         }
         
@@ -189,28 +229,31 @@ function update() {
 
     CTX.drawImage(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
 
-    const eR = enemiesRemaining.toString()
-    for (let i = 0; (i < eR.length); i++) {
-        CTX.drawImage(ImageMemory[`num${eR[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
+    for (let i = 0; (i < 3); i++) {
+        CTX.drawImage(ImageMemory[`num${strToUINum(globalThis.enemiesRemaining)[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
     }
+
     CTX.fillStyle = "rgb(255, 255, 152)"
     CTX.font = "24px Humming"
     CTX.fillText("enemies", (cenX + 440), 75, 200)
 
     // Handle 'Beat 100 enemies'
     const eAnim = Animators.enemies
-    if (eAnim.playing) CTX.drawImage(ImageMemory[((!eAnim.flashing) && "100enemies.png") || "100enemiesflash.png"], 0, 0, 1200, 800, (cenX - 150), (cenY - 100), 3000, 2000)
+    if (eAnim.times > -1) CTX.drawImage(ImageMemory[((!eAnim.flashing) && "100enemies.png") || "100enemiesflash.png"], 0, 0, 1200, 800, (cenX - 150), (cenY - 100), 3000, 2000)
 
     // Handle 'are you ready'
     const rAnim = Animators.ready
-    if (rAnim.times != 0) CTX.drawImage(ImageMemory[`ready${rAnim.times}.png`], 0, 0, 128, 64, (cenX - 250), (cenY - 160), 512, 256)
+    if (rAnim.times > -1) CTX.drawImage(ImageMemory[`ready${rAnim.times}.png`], 0, 0, 128, 64, (cenX - 250), (cenY - 160), 512, 256)
 
     // Handle 'Attack!'
     const aAnim = Animators.attack
-    if (aAnim.times != 0) CTX.drawImage(ImageMemory[`attack${aAnim.times}.png`], 0, 0, 128, 64, (cenX - 185), (cenY - 120), 400, 200)
+    if (aAnim.times > -1) CTX.drawImage(ImageMemory[`attack${aAnim.times}.png`], 0, 0, 128, 64, (cenX - 185), (cenY - 120), 400, 200)
 
     // Handle low movement arrows
+    const nAnim = Animators.nav
+    if (nAnim.times > -1) CTX.drawImage(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
 
+    if (nAnim.ended) nAnim.play()
 
     if (DEBUG) {
         CTX.fillStyle = "red"
@@ -230,9 +273,11 @@ function update() {
 
         globalThis.ImageMemory = ImageMemory
         globalThis.Fighters = Fighters
+        globalThis.Animators = Animators
     }
 }
 update()
 if (MODE == 1) singlePlayerIntro()
+Animators.nav.play()
 
 export default { isKeyFromClassDown }

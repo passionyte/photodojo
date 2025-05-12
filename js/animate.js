@@ -9,12 +9,13 @@ export class Animator {
     type
     playing = false
     interval
-    times = 0
+    times = -1
     timesGoal = 0
     flashing
     duration
     clearTime
     callback
+    ended = false
 
     tick() {
         if (!this.playing) return
@@ -27,6 +28,7 @@ export class Animator {
 
     play(customInt) {
         this.playing = true
+        this.ended = false
         this.interval = setInterval(this.tick.bind(this), (((!customInt) && (this.duration / this.timesGoal)) || customInt))
     }
 
@@ -35,7 +37,8 @@ export class Animator {
 
         setTimeout(() => {
             if (this.interval) clearInterval(this.interval)
-            this.times = 0
+            this.times = -1
+            this.ended = true
             if (this.callback) this.callback(true)
         }, ((!force) && this.clearTime) || 1)
     }
@@ -56,7 +59,7 @@ export class Animator {
 
         if (this.type.includes("frame")) {
             this.timesGoal = tg
-            this.times = 0
+            this.times = -1
 
             if (this.type == "flashframe") this.flashing = false
         }

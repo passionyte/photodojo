@@ -128,8 +128,16 @@ export class Object { // The base for anything *scripted* that will appear on th
         return (this.position.x + this.offset.x)
     }
 
+    get gLeft() {
+        return this.left + (initialLeft - globalThis.leftConstraint)
+    }
+
     get right() {
         return (this.left + this.width)
+    }
+
+    get gRight() {
+        return (this.right) + (initialRight - globalThis.rightConstraint) 
     }
 
     get top() {

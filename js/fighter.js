@@ -2,7 +2,7 @@
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter } from "./globals.js"
-import { isKeyFromClassDown, MODE, initialLeft, initialRight } from "./main.js"
+import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer, newImage } from "./animate.js"
 
 export const defHP = 20
@@ -48,7 +48,7 @@ export class Hitbox extends Object {
     }
 
     check(o) {
-        if (o === this.creator || o.t.stun.active) return false
+        if (o === this.creator || o.t.stun.active || o.fallen) return false
 
         return (collision(this, o))
     }
@@ -107,6 +107,7 @@ export class Fighter extends Object {
     marchLock = false // locks marching / stance during jumping, crouching or other states
     fallen = false // render the fighter fallen, to be used in conjunction with state 'hurt'
     bounces = 0 // for 'fallen'; lets the fighter bounce x amount of times when falling to the ground
+    ignoreGravity = false
 
     timers = {} // contains 'Timer' classes; used for various things that need to be timed such as when a Fighter is attacking or stunned
 
@@ -142,9 +143,10 @@ export class Fighter extends Object {
         }
 
         if (MODE  == 1) {
-            if (this.velocity.x == 6 && (rightConstraint - this.right) <= 200) {
-                globalThis.rightConstraint += 6
-                globalThis.leftConstraint += 6
+            const xv = this.velocity.x
+            if (xv > 0 && (rightConstraint - this.right) <= 200) {
+                globalThis.rightConstraint += xv
+                globalThis.leftConstraint += xv
             }
         }
 
@@ -171,10 +173,9 @@ export class Fighter extends Object {
 
                 this.velocity.y += GRAVITY
 
-                if (diff >= floorPos) { // land
+                if (diff >= floorPos && !this.ignoreGravity) { // land
                     if (!this.fallen) {
-                        this.whenAttacking = 0
-                        this.attackTimer = 0
+                        this.t.attack.stop()
                         this.marchLock = false
                         this.position.y = floorPos
                         this.velocity.y = 0
@@ -234,7 +235,7 @@ export class Fighter extends Object {
             const lefty = (this.facing == "left")
 
             const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
-            new Hitbox(x, this.top, ((lefty) && -4) || 4, 0, 128, 128, this, 4, 10000, "template.jpg", FireballBounds, true)
+            new Hitbox(x, this.top, ((lefty) && -4) || 4, 0, 128, 128, this, 2, 10000, "template.jpg", FireballBounds, true)
         }
 
         /*let isObstructed
@@ -246,7 +247,7 @@ export class Fighter extends Object {
             }
         }
         
-        if (isObstructed && this.velocity.x == 0 && !this.whenStunned) {
+        if (isObstructed && this.velocity.x == 0 && !this.t.stun.active) {
             const nx = (isObstructed == "left" && 2) || ((isObstructed == "right") && -2) || 0
             if (nx != 0) {
                 this.beingPushed = true
@@ -292,13 +293,13 @@ export class Fighter extends Object {
                 const h = this.bounds.h
 
                 CTX.save()
-                CTX.translate((this.left + (w / 2)), (this.top + (h / 2)))
+                CTX.translate((this.gLeft + (w / 2)), (this.top + (h / 2)))
                 CTX.scale(-1, 1)
                 CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -(w / 2), -(h / 2), w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
                 CTX.restore()
             }
             else {
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left + (initialLeft - globalThis.leftConstraint), this.top, this.bounds.w, this.bounds.h)
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.gLeft, this.top, this.bounds.w, this.bounds.h)
             }
         }
         else {
@@ -306,7 +307,7 @@ export class Fighter extends Object {
             const h = this.bounds.h;
 
             // Correct pivot point for rotation
-            const pivotX = this.left + w / 2;
+            const pivotX = this.gLeft + w / 2;
             const pivotY = this.top + h / 2; // Center the pivot point vertically
 
             CTX.save();
@@ -342,29 +343,45 @@ export class Fighter extends Object {
     }
 
     onDamage(dmg, x) {
-        const fromRight = (x > this.position.x)
-
-        this.velocity.x = ((((fromRight) && -1) || 1) * dmg)
+        this.velocity.x = ((((this.facing == "left") && 1) || -1) * dmg)
         this.marchLock = true
 
         const aTimer = this.t.attack
         if (aTimer.active) aTimer.stop()
 
         this.hp -= dmg
+
         this.state = "hurt"
 
-        const sTimer = this.t.stun
-        sTimer.start()
+        if (this.hp > 0) {
+            const sTimer = this.t.stun
+            sTimer.start()
 
-        if ((dmg >= 4) || !this.grounded) {
-            sTimer.duration = 1200
-            this.fallen = true
-            this.bounces = 3
-            this.velocity.y = -10
+            if ((dmg >= 4) || !this.grounded) {
+                sTimer.duration = 1200
+                this.fallen = true
+                this.bounces = 3
+                this.velocity.y = -10
+            }
+            else {
+                sTimer.duration = 300
+            }
         }
         else {
-            sTimer.duration = 300
+            this.fallen = true
+            this.velocity.y = -15
+
+            if (!this.plr) {
+                if (MODE == 1) {
+                    this.ignoreGravity = true
+                    globalThis.enemiesRemaining--
+                }
+            }
+            else {
+                this.bounces = 5
+            }
         }
+
     }
 
     punch() {
@@ -379,7 +396,7 @@ export class Fighter extends Object {
             this.velocity.x = ((lefty) && -2) || 2
 
             const x = ((!lefty) && (this.right + 40)) || (this.left - 60)
-            new Hitbox(x, (this.top + 35), 0, 0, 64, 64, this, 2, 200)
+            new Hitbox(x, (this.top + 35), 0, 0, 64, 64, this, 3, 200)
         }
     }
 
@@ -420,7 +437,7 @@ export class Fighter extends Object {
             return
         }
 
-        super(x, y, 0, 0, bounds.w, bounds.h, true, )
+        super(x, y, 0, 0, bounds.w, bounds.h, true, (!plr))
 
         this.hp = hp
         this.maxHP = hp
