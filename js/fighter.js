@@ -1,8 +1,9 @@
 // Passionyte 2025
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, newImage, w, h, checkTimer, collision, collisionFighter } from "./globals.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter } from "./globals.js"
 import { isKeyFromClassDown } from "./main.js"
+import { Timer, newImage } from "./animate.js"
 
 export const defHP = 20
 export const stateBounds = {
@@ -13,16 +14,31 @@ export const stateBounds = {
     punch: { x: 589, y: 480, w: 217, h: 252 },
     kick: { x: 579, y: 794, w: 194, h: 259 },
     hurt: { x: 347, y: 791, w: 138, h: 262 },
-    shoot: { x: 813, y: 820, w: 214, h: 233 }
+    shoot: { x: 813, y: 820, w: 214, h: 233, offset: { x: 0, y: 28 } }
 }
+
+const FireballBounds = {
+    x: 331,
+    y: 496,
+    w: 220,
+    h: 220,
+}
+
 export const Fighters = []
 export const Hitboxes = []
+
+const FighterTimers = { // What timers to create + duration
+    attack: 0,
+    stun: 0,
+    shoot: 500
+}
 
 export class Hitbox extends Object {
     dmg // damage applied to player
     life // despawns after a given time
     created // for use with the above timer
     creator // don't hit this guy
+    ignoreBoundaries
 
     img // for stuff like the Fireball wooooooshhh, (no not the subreddit)
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
@@ -38,7 +54,7 @@ export class Hitbox extends Object {
     }
 
     update() {
-        const posCheck = (this.right > w || this.left < 0)
+        const posCheck = (!this.ignoreBoundaries && (this.right > w || this.left < 0))
         const timeCheck = (this.life && ((performance.now() - this.created) >= (this.life)))
 
         if (posCheck || timeCheck) { // destroy hitbox
@@ -52,16 +68,17 @@ export class Hitbox extends Object {
 
     draw() {
         const i = this.img
-        if (i) CTX.drawImage(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.bounds.w, this.bounds.h)
-
+        if (i) CTX.drawImage(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.width, this.height)
+            
         if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)")
     }
 
-    constructor(x, y, xv, yv, w, h, c, d, l, i, b) { // a hitbox must always have the supers, damage and a id (determined by script)
-        super(x, y, xv, yv, w, h) // 2 many arguments!1
+    constructor(x, y, xv, yv, w, h, c, d, l, i, b, ib = false) { // a hitbox must always have the supers, damage and a id (determined by script)
+        super(x, y, xv, yv, w, h, undefined, ib) // 2 many arguments!1
 
         this.creator = c
         this.dmg = d
+        this.ignoreBoundaries = ib
 
         if (i) { // Hitbox image junk
             this.img = newImage(i)
@@ -87,18 +104,20 @@ export class Fighter extends Object {
 
     lastStep // only used when state is march
     facing // direction the fighter is facing, either left or right
-    whenStunned = 0 // for use with the below timer
-    stunTimer = 0 // for states such as 'hurt'
     marchLock = false // locks marching / stance during jumping, crouching or other states
-    whenAttacking = 0 // for use with the below timer
-    attackTimer = 0 // for states such as 'punch' or 'kick' or 'shoot', etc.
     fallen = false // render the fighter fallen, to be used in conjunction with state 'hurt'
     bounces = 0 // for 'fallen'; lets the fighter bounce x amount of times when falling to the ground
+
+    timers = {} // contains 'Timer' classes; used for various things that need to be timed such as when a Fighter is attacking or stunned
 
     img
     bounds // derived from state in stateBounds
 
-    setBaseStance() {
+    get t () { // for convenience
+        return this.timers
+    }
+
+    setBaseState() {
         let crouchDesired = false
         let xv = 0
 
@@ -137,7 +156,7 @@ export class Fighter extends Object {
             }
         }
 
-        if (!this.whenStunned || this.fallen) {
+        if (!this.t.stun.active || this.fallen) {
             if (!this.grounded) { // in air
                 if (this.state != "kick" && !this.fallen) this.state = "jump"
 
@@ -157,7 +176,6 @@ export class Fighter extends Object {
                         if (this.bounces > 0) {
                             this.velocity.y -= (8 - (3 - this.bounces))
 
-                            console.log(this.velocity.x)
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
                         }
                         else {
@@ -184,28 +202,32 @@ export class Fighter extends Object {
 
             if (this.state == "crouch") this.velocity.x = 0
 
-            if (this.state == "punch" || this.state == "kick") {
-                if (checkTimer(this.whenAttacking, this.attackTimer)) {
-                    this.whenAttacking = 0
-                    this.attackTimer = 0
-
-                    this.setBaseStance()
-                }
+            const aTimer = this.t.attack
+            if (aTimer.check()) {
+                aTimer.stop()
+                this.setBaseState()
             }
+        }
 
-            if (checkTimer(this.whenStunned, this.stunTimer)) {
-                console.log("unstunning")
+        const sTimer = this.t.stun
+        if (sTimer.check()) {
+            sTimer.stop()
 
-                this.whenStunned = 0
-                this.stunTimer = 0
+            this.setBaseState()
 
-                this.setBaseStance()
+            if (this.fallen) this.fallen = false
+        }
 
-                if (this.fallen) {
-                    this.fallen = false
-                }
-                // fix player pos
-            }
+        const sHTimer = this.t.shoot
+        if (sHTimer.check()) {
+            sHTimer.stop()
+
+            this.state = "shoot"
+
+            const lefty = (this.facing == "left")
+
+            const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
+            new Hitbox(x, this.top, ((lefty) && -4) || 4, 0, 128, 128, this, 4, 10000, "template.jpg", FireballBounds, true)
         }
 
         /*let isObstructed
@@ -228,7 +250,7 @@ export class Fighter extends Object {
             if (this.beingPushed) {
                 this.beingPushed = false
                 //this.velocity.x = 0
-                this.setBaseStance()
+                this.setBaseState()
             }
         }*/
 
@@ -306,7 +328,7 @@ export class Fighter extends Object {
     }
 
     jump() {
-        if (this.grounded && !this.whenAttacking && !this.stunTimer) {
+        if (this.grounded && !this.t.attack.active && !this.t.stun.active) {
             this.marchLock = true
             this.velocity.y = -20
         }
@@ -315,36 +337,37 @@ export class Fighter extends Object {
     onDamage(dmg, x) {
         const fromRight = (x > this.position.x)
 
-        this.velocity.x = ((((fromRight) && -1) || 1) * (dmg * 1.5))
+        this.velocity.x = ((((fromRight) && -1) || 1) * dmg)
         this.marchLock = true
 
-        if (this.whenAttacking) {
-            this.whenAttacking = 0
-            this.attackTimer = 0
-        }
+        const aTimer = this.t.attack
+        if (aTimer.active) aTimer.stop()
 
         this.hp -= dmg
         this.state = "hurt"
+
+        this.t.stun.start()
         this.whenStunned = performance.now()
 
+        const sTimer = this.t.stun
         if ((dmg >= 4) || !this.grounded) {
-            this.stunTimer = 1200
+            sTimer.duration = 1200
             this.fallen = true
             this.bounces = 3
             this.velocity.y = -10
         }
         else {
-            this.stunTimer = 300
+            sTimer.duration = 300
         }
     }
 
     punch() {
-        if (this.grounded && !this.whenAttacking && !this.stunTimer) {
+        const aTimer = this.t.attack
+        if (this.grounded && !aTimer.active && !this.t.stun.active) {
             this.marchLock = true
             this.state = "punch"
 
-            this.whenAttacking = performance.now()
-            this.attackTimer = 200
+            aTimer.start(200)
 
             const lefty = (this.facing == "left")
             this.velocity.x = ((lefty) && -2) || 2
@@ -355,17 +378,31 @@ export class Fighter extends Object {
     }
 
     kick() {
-        if (!this.whenAttacking && !this.stunTimer) {
+        const aTimer = this.t.attack
+        if (!aTimer.active && !this.t.stun.active) {
             this.marchLock = true
             this.state = "kick"
 
-            this.whenAttacking = performance.now()
-            this.attackTimer = 400
+            aTimer.start(400)
 
             if (this.grounded) this.velocity.x = 0
 
             const x = ((this.facing != "left") && (this.right + 20)) || (this.left - 120)
             new Hitbox(x, (this.top + 40), 0, 0, 128, 156, this, 4, 500)
+        }
+    }
+
+    fireball() {
+        const aTimer = this.t.attack
+        if (this.grounded && !aTimer.active && !this.t.stun.active) {
+            this.marchLock = true
+
+            this.state = "hurt" // just for the looks
+
+            aTimer.start(1000)
+            this.t.shoot.start()
+
+            if (this.grounded) this.velocity.x = 0
         }
     }
 
@@ -388,6 +425,8 @@ export class Fighter extends Object {
         this.img = newImage(`${name}.jpg`)
         this.bounds = bounds
         this.facing = facing
+
+        for (const nm in FighterTimers) this.timers[nm] = new Timer(nm, (FighterTimers[nm]))
 
         Fighters.push(this)
     }

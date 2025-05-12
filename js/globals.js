@@ -1,6 +1,8 @@
 // Passionyte 2025
 'use strict'
 
+import { leftConstraint, rightConstraint } from "./main.js"
+
 export const DEBUG = true
 
 export function d(id) {
@@ -18,8 +20,6 @@ export const CTX = CANVAS.getContext("2d")
 
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
-
-export const ImageMemory = {}
 
 // Some convenient keyboard codes
 export const KEYS = {
@@ -56,24 +56,6 @@ export function clamp(x, min, max) {
     if (x > max) x = max
 
     return x
-}
-
-export function newImage(n, w, h) {
-    let i = ImageMemory[n]
-    if (i) return i
-
-    i = new Image()
-    i.src = `../imgs/${n}`
-
-    ImageMemory[n] = i
-
-    return i
-}
-
-export function checkTimer(s, d) {
-    if (s <= 0 || d <= 0) return
-
-    return ((performance.now() - s) > d)
 }
 
 export function collision(o0, o1) {
@@ -132,6 +114,7 @@ export class Object { // The base for anything *scripted* that will appear on th
     }
 
     handlesY // Does the extended class handle Y itself (intended for implementations such as Gravity)
+    ignoreBoundaries // Does the object ignore boundaries (intended for implementations such as fireballs)
 
     get width() {
         return (this.size.w - this.offset.x)
@@ -161,11 +144,19 @@ export class Object { // The base for anything *scripted* that will appear on th
         // basic boundary implementation
         const diff = (this.position.x + this.velocity.x)
 
-        if (diff >= (w - this.width)) {
-            this.position.x = (w - this.width)
+        let l = false
+        let r = false
+
+        if (!this.ignoreBoundaries) {
+            l = (diff <= leftConstraint)
+            r = ((diff >= (rightConstraint - this.width)))
         }
-        else if (diff <= 0) {
-            this.position.x = 0
+
+        if (r) {
+            this.position.x = (rightConstraint - this.width)
+        }
+        else if (l) {
+            this.position.x = leftConstraint
         }
         else {
             this.position.x = diff
@@ -181,7 +172,7 @@ export class Object { // The base for anything *scripted* that will appear on th
         CTX.fillRect(this.left, this.top, 4, 4)
     }
 
-    constructor(x, y, xv, yv, w, h, o = {x: 0, y: 0}, hy = false) {
+    constructor(x, y, xv, yv, w, h, o = {x: 0, y: 0}, ib = false, hy = false) {
         this.position.x = x
         this.position.y = y
         this.velocity.x = xv
@@ -191,6 +182,7 @@ export class Object { // The base for anything *scripted* that will appear on th
         
         this.offset = o
 
+        this.ignoreBoundaries = ib
         this.handlesY = hy
     }
 }
