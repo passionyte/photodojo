@@ -1,7 +1,7 @@
 // Passionyte 2025
 'use strict'
 
-import { leftConstraint, rightConstraint } from "./main.js"
+import { initialLeft, initialRight } from "./main.js"
 
 export const DEBUG = true
 
@@ -148,15 +148,15 @@ export class Object { // The base for anything *scripted* that will appear on th
         let r = false
 
         if (!this.ignoreBoundaries) {
-            l = (diff <= leftConstraint)
-            r = ((diff >= (rightConstraint - this.width)))
+            l = (diff <= globalThis.leftConstraint)
+            r = ((diff >= (globalThis.rightConstraint - this.width)))
         }
 
         if (r) {
-            this.position.x = (rightConstraint - this.width)
+            this.position.x = (globalThis.rightConstraint - this.width)
         }
         else if (l) {
-            this.position.x = leftConstraint
+            this.position.x = globalThis.leftConstraint
         }
         else {
             this.position.x = diff
@@ -167,9 +167,9 @@ export class Object { // The base for anything *scripted* that will appear on th
 
     draw(color) { // Only called in debug mode
         CTX.fillStyle = ((color) && color) || "rgba(255, 0, 0, 0.5)"
-        CTX.fillRect(this.left, this.top, this.width, this.height)
+        CTX.fillRect(this.left + (initialLeft - globalThis.leftConstraint), this.top, this.width, this.height)
         CTX.fillStyle = "rgba(0, 0, 255, 0.5)"
-        CTX.fillRect(this.left, this.top, 4, 4)
+        CTX.fillRect(this.left + (initialLeft - globalThis.leftConstraint), this.top, 4, 4)
     }
 
     constructor(x, y, xv, yv, w, h, o = {x: 0, y: 0}, ib = false, hy = false) {

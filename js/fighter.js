@@ -2,7 +2,7 @@
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter } from "./globals.js"
-import { isKeyFromClassDown } from "./main.js"
+import { isKeyFromClassDown, MODE, initialLeft, initialRight } from "./main.js"
 import { Timer, newImage } from "./animate.js"
 
 export const defHP = 20
@@ -48,13 +48,13 @@ export class Hitbox extends Object {
     }
 
     check(o) {
-        if (o === this.creator || o.whenStunned) return false
+        if (o === this.creator || o.t.stun.active) return false
 
         return (collision(this, o))
     }
 
     update() {
-        const posCheck = (!this.ignoreBoundaries && (this.right > w || this.left < 0))
+        const posCheck = (!this.ignoreBoundaries && (this.right + (initialLeft - globalThis.leftConstraint) > w || this.left + (initialLeft - globalThis.leftConstraint) < 0))
         const timeCheck = (this.life && ((performance.now() - this.created) >= (this.life)))
 
         if (posCheck || timeCheck) { // destroy hitbox
@@ -68,7 +68,7 @@ export class Hitbox extends Object {
 
     draw() {
         const i = this.img
-        if (i) CTX.drawImage(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.width, this.height)
+        if (i) CTX.drawImage(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left + (initialLeft - globalThis.leftConstraint), this.top, this.width, this.height)
             
         if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)")
     }
@@ -139,6 +139,13 @@ export class Fighter extends Object {
         }
         else {
             this.offset = { x: 0, y: 0 } // base
+        }
+
+        if (MODE  == 1) {
+            if (this.velocity.x == 6 && (rightConstraint - this.right) <= 200) {
+                globalThis.rightConstraint += 6
+                globalThis.leftConstraint += 6
+            }
         }
 
         const floorPos = (FLOOR - 258) // 258 is the stance height
@@ -291,7 +298,7 @@ export class Fighter extends Object {
                 CTX.restore()
             }
             else {
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left, this.top, this.bounds.w, this.bounds.h)
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left + (initialLeft - globalThis.leftConstraint), this.top, this.bounds.w, this.bounds.h)
             }
         }
         else {
@@ -346,10 +353,9 @@ export class Fighter extends Object {
         this.hp -= dmg
         this.state = "hurt"
 
-        this.t.stun.start()
-        this.whenStunned = performance.now()
-
         const sTimer = this.t.stun
+        sTimer.start()
+
         if ((dmg >= 4) || !this.grounded) {
             sTimer.duration = 1200
             this.fallen = true
@@ -414,7 +420,7 @@ export class Fighter extends Object {
             return
         }
 
-        super(x, y, bounds.x, bounds.y, bounds.w, bounds.h, true)
+        super(x, y, 0, 0, bounds.w, bounds.h, true, )
 
         this.hp = hp
         this.maxHP = hp

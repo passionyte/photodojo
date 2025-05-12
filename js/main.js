@@ -8,14 +8,23 @@ import { Animator, Animators, newImage, ImageMemory } from "./animate.js"
 let NOW = performance.now()
 let frame_time = NOW
 
+export let MODE = 1 // 1 is singleplayer, 2 is multiplayer
+
 // SINGLE PLAYER VARIABLES
-export let leftConstraint = 0
-export let rightConstraint = w
+export const initialLeft = 0
+export const initialRight = w
+globalThis.leftConstraint = initialLeft
+globalThis.rightConstraint = initialRight
+
 let enemiesRemaining = 100
 
-const P1 = new Fighter(cenX, FLOOR, 1)
+// Background Variables
+let bg0x = 0
+let bg1x = w
 
-let MODE = 1 // 1 is singleplayer, 2 is multiplayer
+const P1 = new Fighter(cenX, (FLOOR - 258), 1)
+
+new Fighter(cenX + 200, (FLOOR - 258))
 
 // Input Manager
 const downKeys = {}
@@ -104,9 +113,12 @@ newImage("plricon.png")
 newImage("enemycounter.png")
 newImage("100enemies.png")
 newImage("100enemiesflash.png")
+newImage("background.jpg")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)
+for (let i = 0; (i < 10); i++) newImage(`num${i}.png`)
+for (let i = 0; (i < 6); i++) newImage(`nav${i}.png`)
 
 function update() {
     requestAnimationFrame(update)
@@ -120,6 +132,14 @@ function update() {
     /*** END FPS Trap ***/
 
     clearCanvas()
+
+    // Handle background
+
+    CTX.drawImage(ImageMemory["background.jpg"], 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
+    CTX.drawImage(ImageMemory["background.jpg"], 0, 0, 612, 408, bg1x - leftConstraint, 0, w, h)
+
+    if (bg0x < (leftConstraint - w)) bg0x = (bg1x + w)
+    if (bg1x < (leftConstraint - w)) bg1x = (bg0x + w)
 
     // Handle fighters
 
@@ -168,9 +188,14 @@ function update() {
     // Handle enemy counter
 
     CTX.drawImage(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
-    CTX.fillStyle = "yellow"
-    CTX.font = "20px Arial"
-    CTX.fillText(enemiesRemaining, (cenX + 400), 70, 200)
+
+    const eR = enemiesRemaining.toString()
+    for (let i = 0; (i < eR.length); i++) {
+        CTX.drawImage(ImageMemory[`num${eR[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
+    }
+    CTX.fillStyle = "rgb(255, 255, 152)"
+    CTX.font = "24px Humming"
+    CTX.fillText("enemies", (cenX + 440), 75, 200)
 
     // Handle 'Beat 100 enemies'
     const eAnim = Animators.enemies
@@ -183,6 +208,9 @@ function update() {
     // Handle 'Attack!'
     const aAnim = Animators.attack
     if (aAnim.times != 0) CTX.drawImage(ImageMemory[`attack${aAnim.times}.png`], 0, 0, 128, 64, (cenX - 185), (cenY - 120), 400, 200)
+
+    // Handle low movement arrows
+
 
     if (DEBUG) {
         CTX.fillStyle = "red"
@@ -199,6 +227,9 @@ function update() {
         CTX.fillText(`stunned: ${(P1.t.stun.active)}`, 20, 320, 150)
 
         CTX.fillRect(0, FLOOR, w, 2)
+
+        globalThis.ImageMemory = ImageMemory
+        globalThis.Fighters = Fighters
     }
 }
 update()

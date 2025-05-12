@@ -5,3 +5,8 @@ body {
 canvas {
     background-color: white
 }
+
+@font-face {
+    font-family: Humming;
+    src: url('./fonts/FOT-HummingStd-D.otf')
+}
