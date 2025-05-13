@@ -2,7 +2,7 @@
 'use strict'
 
 import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt } from "./globals.js"
-import { Fighter, Fighters, Hitboxes } from "./fighter.js"
+import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, newImage, ImageMemory } from "./animate.js"
 
 let NOW = performance.now()
@@ -98,6 +98,35 @@ new Animator("attack", "frame", 200, 500, 11)
 new Animator("ready", "frame", 50, 1000, 5)
 new Animator("nav", "frame", 250, 500, 5)
 
+function results() {
+    const enemiesDefeated = (100 - enemiesRemaining)
+    const hpPerc = Math.floor((P1.hp / defHP))
+    const points = (hpPerc * 2)
+
+    let grade = "F"
+
+    if (points >= 175) {
+        grade = "S"
+    }
+    else if (points >= 150) {
+        grade = "A+"
+    }
+    else if (points >= 125) {
+        grade = "A"
+    }
+    else if (points >= 100) {
+        grade = "B"
+    }
+    else if (points >= 60) {
+        grade = "C"
+    }
+    else if (points >= 25) {
+        grade = "D"
+    }
+
+    console.log(`RESULTS!!! HP: ${hpPerc}% | Points: ${points} | Enemies Defeated: ${enemiesDefeated} | Grade: ${grade}`)
+}
+
 function strToUINum(str) { // improve later. this is overengineered ain't it.
     let result = ""
 
@@ -185,6 +214,7 @@ function update() {
                     const guy = new Fighter(P1.left + w + (i * 50), (FLOOR - 258), undefined, undefined, undefined, 4)
                     guy.enemyType = randInt(1, 3)
                     distSinceLastGuy = P1.left
+                    lastGuySpawned = NOW
                 }
             }
         }
@@ -209,16 +239,16 @@ function update() {
                 if (a.enemyType == 1) {
                     // kick type
                     movement = 4
-                    if (Math.random() < 0.01) a.kick()
+                    if (Math.random() < 0.006) a.kick()
                 }
                 else if (a.enemyType == 2) {
                     // fireball type
-                    if (Math.random() < 0.003) a.fireball()
+                    if (Math.random() < 0.004) a.fireball()
                 }
                 else {
                     // punch type
-                    movement = 4
-                    if (Math.random() < 0.005) a.punch()
+                    movement = 0//4
+                    if (Math.random() < 0.008) a.punch()
                 }
 
                 if (movement &&(a.grounded && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
@@ -243,7 +273,7 @@ function update() {
             }
         }
 
-        if (prev && h.check(prev)) {
+        if (prev && (prev.type == h.type) && h.check(prev)) {
             h.remove()
             prev.remove()
         }
@@ -288,7 +318,7 @@ function update() {
     const nAnim = Animators.nav
     if (nAnim.times > -1) CTX.drawImage(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
 
-    if (nAnim.ended) nAnim.play()
+    if (nAnim.ended && ((NOW - lastGuySpawned) > 5000)) nAnim.play()
 
     if (DEBUG) {
         CTX.fillStyle = "red"

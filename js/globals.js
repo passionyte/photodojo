@@ -45,7 +45,7 @@ export const keyClasses = {
 }
 
 export const FLOOR = (h - 100)
-export const GRAVITY = 1
+export const GRAVITY = 0.75
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)

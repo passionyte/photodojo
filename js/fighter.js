@@ -30,7 +30,8 @@ export const Hitboxes = []
 const FighterTimers = { // What timers to create + duration
     attack: 0,
     stun: 0,
-    shoot: 500
+    shoot: 500,
+    lag: 0
 }
 
 export class Hitbox extends Object {
@@ -38,7 +39,8 @@ export class Hitbox extends Object {
     life // despawns after a given time
     created // for use with the above timer
     creator // don't hit this guy
-    ignoreBoundaries
+    ignoreBoundaries // ignore left and right boundaries
+    type // easy identification
 
     img // for stuff like the Fireball wooooooshhh, (no not the subreddit)
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
@@ -47,10 +49,26 @@ export class Hitbox extends Object {
         Hitboxes.splice(Hitboxes.indexOf(this), 1)
     }
 
-    check(o) {
-        if (!o.dmg && (o === this.creator || (!o.plr && !this.creator.plr) || o.t.stun.active || o.fallen)) return false
+    check(hit) {
+        const isPlr = (!hit.dmg)
+        const teamCheck = (this.creator.plr && !hit.plr)
 
-        return (collision(this, o))
+        if (!this.creator.plr) {
+            console.log(this.creator.plr)
+            console.log(hit.plr)
+        }
+
+        if (isPlr || (teamCheck)) {
+            if (hit != this.creator) {
+                console.log(hit.state)
+                if (!isPlr || (!hit.t.stun.active && !hit.fallen)) {
+                    console.log("Hit!")
+                    return collision(this, hit)
+                }
+            }
+        }
+
+        return false
     }
 
     update() {
@@ -73,9 +91,10 @@ export class Hitbox extends Object {
         if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)")
     }
 
-    constructor(x, y, xv, yv, w, h, c, d, l, i, b, ib = false) { // a hitbox must always have the supers, damage and a id (determined by script)
+    constructor(x, y, xv, yv, w, h, t, c, d, l, i, b, ib = false) { // a hitbox must always have the supers, damage and a id (determined by script)
         super(x, y, xv, yv, w, h, undefined, ib) // 2 many arguments!1
 
+        this.type = t
         this.creator = c
         this.dmg = d
         this.ignoreBoundaries = ib
@@ -118,6 +137,14 @@ export class Fighter extends Object {
         return this.timers
     }
 
+    get alive () {
+        return (this.hp > 0)
+    }
+
+    get canAttack() {
+        return (!this.t.attack.active && !this.t.stun.active && !this.t.lag.active && this.alive && !this.fallen)
+    }
+
     remove() {
         Fighters.splice(Fighters.indexOf(this), 1)
         return
@@ -151,7 +178,7 @@ export class Fighter extends Object {
             // scrolling
             if (this.plr) {
                 const xv = this.velocity.x
-                if (xv > 0 && (rightConstraint - this.right) <= 200) {
+                if (xv > 0 && (rightConstraint - this.right) <= 500) {
                     globalThis.rightConstraint += xv
                     globalThis.leftConstraint += xv
                 }
@@ -223,15 +250,16 @@ export class Fighter extends Object {
             const aTimer = this.t.attack
             if (aTimer.check()) { // end attack
                 aTimer.stop()
+                this.t.lag.start((aTimer.duration / 4))
                 this.setBaseState()
             }
         }
 
         const sTimer = this.t.stun
-        if (sTimer.check()) { // unstun/fall player
+        if (sTimer.check()) { // unstun/fall fighter
             sTimer.stop()
 
-            if (this.hp > 0) {
+            if (this.alive) {
                 this.setBaseState()
                 if (this.fallen) this.fallen = false
             }
@@ -241,15 +269,18 @@ export class Fighter extends Object {
         if (sHTimer.check()) { // shoot fireball!
             sHTimer.stop()
 
-            if (!sTimer.active && this.hp > 0) {
+            if (!sTimer.active && this.alive) {
                 this.state = "shoot"
 
                 const lefty = (this.facing == "left")
 
                 const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
-                new Hitbox(x, this.top, ((lefty) && -5) || 5, 0, 128, 128, this, 2, 10000, "template.jpg", FireballBounds, true)
+                new Hitbox(x, this.top, ((lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.jpg", FireballBounds, true)
             }
         }
+
+        const lTimer = this.t.lag
+        if (lTimer.check()) lTimer.stop() // end attack lag
 
         /*let isObstructed
         for (const a of Fighters) {
@@ -280,7 +311,7 @@ export class Fighter extends Object {
     }
 
     draw() {
-        if (this.state == "march") {
+        if (this.state == "march") { // Do march animation
             this.bounds = stateBounds.stance
             const NOW = performance.now()
 
@@ -301,7 +332,7 @@ export class Fighter extends Object {
         }
 
         if (!this.fallen) {
-            if (this.facing == "left") {
+            if (this.facing == "left") { // flip our player around
                 const w = this.bounds.w
                 const h = this.bounds.h
 
@@ -349,38 +380,38 @@ export class Fighter extends Object {
     }
 
     jump() {
-        if (this.grounded && !this.t.attack.active && !this.t.stun.active && (this.hp > 0)) {
+        if (this.grounded && this.canAttack) {
             this.marchLock = true
-            this.velocity.y = -20
+            this.velocity.y = -18
         }
     }
 
-    onDamage(dmg) {
-        this.velocity.x = ((((this.facing == "left") && 1) || -1) * dmg)
-        this.marchLock = true
+    onDamage(dmg) { // Ouch! we are taking damage
+        this.velocity.x = ((((this.facing == "left") && 1) || -1) * dmg) // Damage-based knockback
+        this.marchLock = true // Stop us from moving
 
         const aTimer = this.t.attack
-        if (aTimer.active) aTimer.stop()
+        if (aTimer.active) aTimer.stop() // Stop attack timer
 
-        this.hp = clamp(this.hp - dmg, 0, this.maxHP)
+        this.hp = clamp((this.hp - dmg), 0, this.maxHP) // Make sure our HP doesn't go below 0
 
         this.state = "hurt"
 
-        if (this.hp > 0) {
+        if (this.hp > 0) { // If we are still alive, handle stun timer
             const sTimer = this.t.stun
             sTimer.start()
 
-            if ((dmg >= 4) || !this.grounded) {
+            if ((dmg >= 4) || !this.grounded) { // Heavy damage causing us to fall
                 sTimer.duration = 1200
                 this.fallen = true
                 this.bounces = 3
                 this.velocity.y = -10
             }
             else {
-                sTimer.duration = 300
+                sTimer.duration = 300 // Minor damage causing stun
             }
         }
-        else {
+        else { // We died!
             this.t.stun.start()
             this.state = "hurt"
 
@@ -388,11 +419,11 @@ export class Fighter extends Object {
             this.velocity.y = -15
 
             if (!this.plr) {
-                if (MODE == 1) {
+                if (MODE == 1) { // Make enemies fall through the floor
                     this.ignoreGravity = true
                     globalThis.enemiesRemaining--
 
-                    setTimeout(() => {
+                    setTimeout(() => { // remove them to free up memory after a sec
                         this.remove()
                     }, 1000)
                 }
@@ -404,45 +435,42 @@ export class Fighter extends Object {
 
     }
 
-    punch() {
-        const aTimer = this.t.attack
-        if (this.grounded && !aTimer.active && !this.t.stun.active && (this.hp > 0)) {
+    punch() { 
+        if (this.grounded && this.canAttack) {
             this.marchLock = true
             this.state = "punch"
 
-            aTimer.start(200)
+            this.t.attack.start(200)
 
             const lefty = (this.facing == "left")
             this.velocity.x = ((lefty) && -2) || 2
 
             const x = ((!lefty) && (this.right + 40)) || (this.left - 60)
-            new Hitbox(x, (this.top + 35), 0, 0, 64, 64, this, 3, 200)
+            new Hitbox(x, (this.top + 25), 0, 0, 64, 32, "punch", this, 3, 200)
         }
     }
 
     kick() {
-        const aTimer = this.t.attack
-        if (!aTimer.active && !this.t.stun.active && (this.hp > 0)) {
+        if (this.canAttack) {
             this.marchLock = true
             this.state = "kick"
 
-            aTimer.start(600)
+            this.t.attack.start(600)
 
             if (this.grounded) this.velocity.x = 0
 
-            const x = ((this.facing != "left") && (this.right + 20)) || (this.left - 120)
-            new Hitbox(x, (this.top + 40), 0, 0, 128, 156, this, 4, 500)
+            const x = ((this.facing != "left") && this.right) || (this.left - 100)
+            new Hitbox(x, (this.top + 40), 0, 0, 100, 156, "kick", this, 4, 350)
         }
     }
 
     fireball() {
-        const aTimer = this.t.attack
-        if (this.grounded && !aTimer.active && !this.t.stun.active && (this.hp > 0)) {
+        if (this.grounded && this.canAttack) {
             this.marchLock = true
 
             this.state = "hurt" // just for the looks
 
-            aTimer.start(1000)
+            this.t.attack.start(1000)
             this.t.shoot.start()
 
             if (this.grounded) this.velocity.x = 0
