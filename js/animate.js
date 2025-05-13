@@ -9,27 +9,58 @@ export class Animator {
     type
     playing = false
     interval
-    times = -1
-    timesGoal = 0
-    flashing
     duration
     clearTime
     callback
     ended = false
 
+    // frame properties
+    times = -1
+    timesGoal = 0
+    flashing
+
+    // tween properties
+    object
+    properties
+    start
+    time
+    startProps = {}
+
     tick() {
         if (!this.playing) return
 
-        this.times++
-        if (this.type == "flashframe") this.flashing = (!this.flashing)
+        if (this.type.includes("frame")) {
+            this.times++
+            if (this.type == "flashframe") this.flashing = (!this.flashing)
+    
+            if (this.times >= this.timesGoal) this.stop()
+        }
+        else if (this.type == "tween") {
+            this.time = (performance.now() - this.start)
 
-        if (this.times >= this.timesGoal) this.stop()
+            for (let p in this.properties) this.object[p] = (this.startProps[p] - (this.properties[p] / (this.duration / this.time)))
+
+            if (this.time >= this.duration) this.stop()
+        }
     }
 
     play(customInt) {
         this.playing = true
         this.ended = false
-        this.interval = setInterval(this.tick.bind(this), (((!customInt) && (this.duration / this.timesGoal)) || customInt))
+
+        let dur = customInt
+
+        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((this.type == "tween") && 1) || this.duration
+
+        if (this.type == "tween") {
+            this.start = performance.now()
+
+            for (let p in this.properties) {
+                if (!this.startProps[p]) this.startProps[p] = this.object[p]
+            }
+        }
+
+        this.interval = setInterval(this.tick.bind(this), dur)
     }
 
     stop(force) {
@@ -37,13 +68,24 @@ export class Animator {
 
         setTimeout(() => {
             if (this.interval) clearInterval(this.interval)
-            this.times = -1
+
+            if (this.type.includes("frame")) {
+                this.times = -1
+            }
+            else if (this.type == "tween") {
+                this.start = -1
+                this.object = null
+                this.properties = null
+                this.time = 0
+                this.startProps = {}
+            }
+
             this.ended = true
             if (this.callback) this.callback(true)
         }, ((!force) && this.clearTime) || 1)
     }
 
-    constructor(n = "animator", t, d = 1000, ct = 1, tg, cb) {
+    constructor(n = "animator", t, d = 1000, ct = 1, dat, cb) {
         if (!t) {
             console.error(`Animator: New animator of name '${n}' failed to create; missing or unknown type '${t}'.`)
             return
@@ -58,11 +100,15 @@ export class Animator {
         this.callback = cb
 
         if (this.type.includes("frame")) {
-            this.timesGoal = tg
+            this.timesGoal = dat.goal
             this.times = -1
 
             if (this.type == "flashframe") this.flashing = false
         }
+        else if (this.type == "tween") {    
+            this.properties = dat.prop
+            this.object = dat.obj
+        } 
 
         this.tick = this.tick.bind(this)
         this.stop = this.stop.bind(this)

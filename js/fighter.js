@@ -5,7 +5,7 @@ import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter, 
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer, newImage } from "./animate.js"
 
-export const defHP = 25
+export const defHP = 30
 export const stateBounds = {
     stance: { x: 876, y: 476, w: 137, h: 258 },
     jump: { x: 354, y: 1102, w: 110, h: 269, offset: { x: 27, y: 0 } },
@@ -32,7 +32,7 @@ const FighterTimers = { // What timers to create + duration
     stun: 0,
     shoot: 500,
     lag: 0
-}
+}   
 
 export class Hitbox extends Object {
     dmg // damage applied to player
@@ -50,19 +50,12 @@ export class Hitbox extends Object {
     }
 
     check(hit) {
-        const isPlr = (!hit.dmg)
-        const teamCheck = (this.creator.plr && !hit.plr)
+        const isntPlr = (hit.dmg)
+        const teamCheck = (this.creator.plr == hit.plr || (isntPlr && this.creator.plr == hit.creator.plr))
 
-        if (!this.creator.plr) {
-            console.log(this.creator.plr)
-            console.log(hit.plr)
-        }
-
-        if (isPlr || (teamCheck)) {
+        if (isntPlr || !teamCheck) {
             if (hit != this.creator) {
-                console.log(hit.state)
-                if (!isPlr || (!hit.t.stun.active && !hit.fallen)) {
-                    console.log("Hit!")
+                if (isntPlr || (!hit.t.stun.active && !hit.fallen && !(hit.state == "crouch" && this.type == "fireball"))) {
                     return collision(this, hit)
                 }
             }
@@ -227,6 +220,7 @@ export class Fighter extends Object {
                         else { // end this
                             this.position.y = floorPos
                             this.velocity.x = 0
+                            this.velocity.y = 0
                         }
                     }
                 }
@@ -262,6 +256,8 @@ export class Fighter extends Object {
             if (this.alive) {
                 this.setBaseState()
                 if (this.fallen) this.fallen = false
+                this.position.y = floorPos
+                this.velocity.y = 0
             }
         }
 

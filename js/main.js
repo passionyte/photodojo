@@ -1,7 +1,7 @@
 // Passionyte 2025
 'use strict'
 
-import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt } from "./globals.js"
+import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt, cloneArray } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, newImage, ImageMemory } from "./animate.js"
 
@@ -10,19 +10,32 @@ let frame_time = NOW
 
 export let MODE = 1 // 1 is singleplayer, 2 is multiplayer
 
+let playing = false
+
 // Boundary Variables
 export const initialLeft = 0
 export const initialRight = w
 globalThis.leftConstraint = initialLeft
 globalThis.rightConstraint = initialRight
 
+// UI Variables
+const clearText = {
+    x: w,
+    y: (cenY - 100),
+    visible: false
+}
+
 // SINGLE PLAYER VARIABLES
 
 // Enemy Spawning
 let distSinceLastGuy = 0
 let lastGuySpawned = 0 
-const distBetweenGuys = w
+const distBetweenGuys = (w / 2)
 globalThis.enemiesRemaining = 100
+
+// Results
+let timeStarted = 0
+let resultsShown = false
 
 // END
 
@@ -58,7 +71,7 @@ export function isKeyFromClassDown(c) {
 */
 function keypress(event) {
     const key = event.keyCode
-    if (downKeys[key]) return
+    if (downKeys[key] || !playing) return
   
     downKeys[key] = true
   
@@ -93,17 +106,21 @@ function keyup(event) {
 
 // UI Animators
 
-new Animator("enemies", "flashframe", 1000, undefined, 5, singlePlayerIntro)
-new Animator("attack", "frame", 200, 500, 11)
-new Animator("ready", "frame", 50, 1000, 5)
-new Animator("nav", "frame", 250, 500, 5)
+new Animator("enemies", "flashframe", 1000, undefined, {goal: 5}, singlePlayerIntro)
+new Animator("attack", "frame", 200, 500, {goal: 11})
+new Animator("ready", "frame", 50, 1000, {goal: 5})
+new Animator("nav", "frame", 250, 500, {goal: 5})
+new Animator("clearin", "tween", 250, 2000, {obj: clearText, prop: {x: (cenX + 100)}}, function () {Animators.clearout.play()})
+new Animator("clearout", "tween", 250, undefined, {obj: clearText, prop: {x: w}}, results)
 
 function results() {
+    clearText.visible = false
+
     const enemiesDefeated = (100 - enemiesRemaining)
-    const hpPerc = Math.floor((P1.hp / defHP))
+    const hpPerc = Math.floor((P1.hp / defHP) * 100)
     const points = (hpPerc * 2)
 
-    let grade = "F"
+    let grade = "Fail"
 
     if (points >= 175) {
         grade = "S"
@@ -122,6 +139,16 @@ function results() {
     }
     else if (points >= 25) {
         grade = "D"
+    }
+    else if (points > 0) {
+        grade = "E"
+    }
+
+    if (grade == "Fail") {
+
+    }
+    else {
+        
     }
 
     console.log(`RESULTS!!! HP: ${hpPerc}% | Points: ${points} | Enemies Defeated: ${enemiesDefeated} | Grade: ${grade}`)
@@ -163,6 +190,7 @@ function singlePlayerIntro(cb) {
         Animators.ready.play()
 
         setTimeout(function() {
+            playing = true
             Animators.attack.play()
         }, 1050)
     }
@@ -178,6 +206,7 @@ newImage("enemycounter.png")
 newImage("100enemies.png")
 newImage("100enemiesflash.png")
 newImage("background.jpg")
+newImage("clear.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)
@@ -200,89 +229,110 @@ function update() {
     // Handle background
 
     CTX.drawImage(ImageMemory["background.jpg"], 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
-    CTX.drawImage(ImageMemory["background.jpg"], 0, 0, 612, 408, bg1x - leftConstraint, 0, w, h)
+
+    CTX.save() // Save CTX state
+    CTX.translate((bg1x - leftConstraint) + (w / 2), 0) // Flip image horizontally
+    CTX.scale(-1, 1)
+    CTX.translate(-(((bg1x - leftConstraint)) + ( w / 2)) + 600, 0) // restore the position (roughly)
+    CTX.drawImage(ImageMemory["background.jpg"], 0, 0, 612, 408, (bg1x - leftConstraint) - (w / 2), 0, w, h) // Draw the 2nd background
+    CTX.restore() // Restore CTX state
 
     if (bg0x < (leftConstraint - w)) bg0x = (bg1x + w)
     if (bg1x < (leftConstraint - w)) bg1x = (bg0x + w)
 
-    // Single player NPCS
+    const SINGLE = (MODE == 1)
 
-    if (MODE == 1) {
-        if (enemiesRemaining > 0) {
-            if (P1.left > (distSinceLastGuy + (distBetweenGuys - randInt(0, 200)))) {
-                for (let i = 0; (i < randInt(1, 3)); i++) {
-                    const guy = new Fighter(P1.left + w + (i * 50), (FLOOR - 258), undefined, undefined, undefined, 4)
-                    guy.enemyType = randInt(1, 3)
-                    distSinceLastGuy = P1.left
-                    lastGuySpawned = NOW
+    if (playing) {
+        // Single player NPCS
+
+        if (SINGLE) {
+            if (enemiesRemaining > 0) {
+                if (P1.left > (distSinceLastGuy + (distBetweenGuys - randInt(0, 200)))) {
+                    let amt = 1
+
+                    if (enemiesRemaining > 3) amt = randInt(1, 3)
+
+                    for (let i = 0; (i < amt); i++) {
+                        const guy = new Fighter(P1.left + w + (i * 200), (FLOOR - 258), undefined, undefined, undefined, 4)
+                        guy.enemyType = randInt(1, 3)
+                        distSinceLastGuy = P1.left
+                        lastGuySpawned = NOW
+                    }
                 }
             }
-        }
-        else {
-            // win
+            else {
+                // win
+            }
         }
     }
-
+    
     // Handle fighters
 
     for (const a of Fighters) {
-        if (a.plr) {
-            if (a.grounded && !a.t.attack.active && !a.t.stun.active) a.setBaseState()
-        }
-        else { // NPC
-            if (MODE == 1) {
-                a.facing = "left"
-
-                // Basic AI
-                let movement
-
-                if (a.enemyType == 1) {
-                    // kick type
-                    movement = 4
-                    if (Math.random() < 0.006) a.kick()
+        if (playing) {
+            if (a.plr) {
+                if (a.grounded && !a.t.attack.active && !a.t.stun.active) a.setBaseState()
+            }
+            else { // NPC
+                if (SINGLE) {
+                    a.facing = "left"
+    
+                    // Basic AI
+                    let movement
+    
+                    if (a.enemyType == 1) {
+                        // kick type
+                        movement = 4
+                        if (Math.random() < 0.006) a.kick()
+                    }
+                    else if (a.enemyType == 2) {
+                        // fireball type
+                        if (Math.random() < 0.004) a.fireball()
+                    }
+                    else {
+                        // punch type
+                        movement = 4
+                        if (Math.random() < 0.008) a.punch()
+                    }
+    
+                    if (movement &&(a.grounded && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
                 }
-                else if (a.enemyType == 2) {
-                    // fireball type
-                    if (Math.random() < 0.004) a.fireball()
-                }
-                else {
-                    // punch type
-                    movement = 0//4
-                    if (Math.random() < 0.008) a.punch()
-                }
-
-                if (movement &&(a.grounded && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
             }
         }
         
         a.update()
     }
 
-    // Handle hitboxes
-    let prev
-    for (const h of Hitboxes) {
-        for (const a of Fighters) {
-            if (a.hp > 0) {
-                const col = h.check(a)
+    if (playing) {
+        // Handle hitboxes
+        let prev
+        let fakeHitboxes = cloneArray(Hitboxes)
+        for (const h of fakeHitboxes) {
+            for (const a of Fighters) {
+                if (a.hp > 0) {
+                    const col = h.check(a)
 
-                if (col) {
-                    a.onDamage(h.dmg)
-                    h.remove()
-                    break
+                    if (col) {
+                        a.onDamage(h.dmg)
+                        h.remove()
+                        break
+                    }
                 }
             }
+
+            if (prev && (prev.type == h.type) && h.check(prev)) {
+                h.remove()
+                prev.remove()
+            }
+
+            prev = h
+
+            h.update()
         }
-
-        if (prev && (prev.type == h.type) && h.check(prev)) {
-            h.remove()
-            prev.remove()
-        }
-
-        prev = h
-
-        h.update()
+        fakeHitboxes = null
+        prev = null
     }
-    prev = null
+    
 
     // Handle P1 health bar and icon
 
@@ -295,7 +345,7 @@ function update() {
     CTX.drawImage(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
 
     for (let i = 0; (i < 3); i++) {
-        CTX.drawImage(ImageMemory[`num${strToUINum(globalThis.enemiesRemaining)[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
+        CTX.drawImage(ImageMemory[`num${strToUINum((100 - enemiesRemaining))[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
     }
 
     CTX.fillStyle = "rgb(255, 255, 152)"
@@ -319,6 +369,23 @@ function update() {
     if (nAnim.times > -1) CTX.drawImage(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
 
     if (nAnim.ended && ((NOW - lastGuySpawned) > 5000)) nAnim.play()
+
+    // Handle 'victory' clear text
+
+    if (clearText.visible) CTX.drawImage(ImageMemory["clear.png"], 0, 0, 128, 64, clearText.x, clearText.y, 256, 128)
+
+    if (!P1.alive || ((SINGLE) && (enemiesRemaining <= 0)) && playing) {
+        playing = false
+
+        if (P1.alive && SINGLE) {
+            clearText.visible = true
+            Animators.clearin.play()
+
+            for (const f of Fighters) {
+                if (!f.plr && f.alive) f.remove()
+            }
+        }
+    }
 
     if (DEBUG) {
         CTX.fillStyle = "red"
