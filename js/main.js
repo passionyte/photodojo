@@ -1,7 +1,7 @@
 // Passionyte 2025
 'use strict'
 
-import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR } from "./globals.js"
+import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt } from "./globals.js"
 import { Fighter, Fighters, Hitboxes } from "./fighter.js"
 import { Animator, Animators, newImage, ImageMemory } from "./animate.js"
 
@@ -10,23 +10,27 @@ let frame_time = NOW
 
 export let MODE = 1 // 1 is singleplayer, 2 is multiplayer
 
-// SINGLE PLAYER VARIABLES
+// Boundary Variables
 export const initialLeft = 0
 export const initialRight = w
 globalThis.leftConstraint = initialLeft
 globalThis.rightConstraint = initialRight
-let distSinceLastGuy = 0
-const distBetweenGuys = w
 
+// SINGLE PLAYER VARIABLES
+
+// Enemy Spawning
+let distSinceLastGuy = 0
+let lastGuySpawned = 0 
+const distBetweenGuys = w
 globalThis.enemiesRemaining = 100
+
+// END
 
 // Background Variables
 let bg0x = 0
 let bg1x = w
 
 const P1 = new Fighter(cenX, (FLOOR - 258), 1)
-
-const Test = new Fighter(cenX + 200, (FLOOR - 258))
 
 // Input Manager
 const downKeys = {}
@@ -65,7 +69,7 @@ function keypress(event) {
         if (isKeyFromClassDown(P1.facing)) {
             P1.punch()
         }
-        else if (P1.velocity.x == 0 && P1.state != "crouch") {
+        else if ((P1.velocity.x == 0 || !P1.grounded) && P1.state != "crouch") {
             P1.kick()
         }
         else if (P1.state != "crouch") {
@@ -175,10 +179,17 @@ function update() {
     // Single player NPCS
 
     if (MODE == 1) {
-        if (P1.left > (distSinceLastGuy + distBetweenGuys)) {
-            console.log("creating new guy")
-            new Fighter(P1.left + w, (FLOOR - 258))
-            distSinceLastGuy = P1.left
+        if (enemiesRemaining > 0) {
+            if (P1.left > (distSinceLastGuy + (distBetweenGuys - randInt(0, 200)))) {
+                for (let i = 0; (i < randInt(1, 3)); i++) {
+                    const guy = new Fighter(P1.left + w + (i * 50), (FLOOR - 258), undefined, undefined, undefined, 4)
+                    guy.enemyType = randInt(1, 3)
+                    distSinceLastGuy = P1.left
+                }
+            }
+        }
+        else {
+            // win
         }
     }
 
@@ -192,9 +203,25 @@ function update() {
             if (MODE == 1) {
                 a.facing = "left"
 
-                // insert AI code here.
+                // Basic AI
+                let movement
 
-                if (Math.random() < 0.01) a.punch()
+                if (a.enemyType == 1) {
+                    // kick type
+                    movement = 4
+                    if (Math.random() < 0.01) a.kick()
+                }
+                else if (a.enemyType == 2) {
+                    // fireball type
+                    if (Math.random() < 0.003) a.fireball()
+                }
+                else {
+                    // punch type
+                    movement = 4
+                    if (Math.random() < 0.005) a.punch()
+                }
+
+                if (movement &&(a.grounded && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
             }
         }
         
@@ -202,22 +229,30 @@ function update() {
     }
 
     // Handle hitboxes
-
+    let prev
     for (const h of Hitboxes) {
         for (const a of Fighters) {
             if (a.hp > 0) {
                 const col = h.check(a)
 
                 if (col) {
-                    a.onDamage(h.dmg, h.position.x)
+                    a.onDamage(h.dmg)
                     h.remove()
                     break
                 }
             }
         }
 
+        if (prev && h.check(prev)) {
+            h.remove()
+            prev.remove()
+        }
+
+        prev = h
+
         h.update()
     }
+    prev = null
 
     // Handle P1 health bar and icon
 
@@ -257,7 +292,7 @@ function update() {
 
     if (DEBUG) {
         CTX.fillStyle = "red"
-        CTX.font = "20px Arial"
+        CTX.font = "20px Humming"
 
         const fps = Math.round((TIME_PASSED / MS_PER_FRAME) * FPS)
         CTX.fillText("debug mode", 20, 40, 200)

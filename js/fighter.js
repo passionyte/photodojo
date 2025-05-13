@@ -1,11 +1,11 @@
 // Passionyte 2025
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter } from "./globals.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter, clamp } from "./globals.js"
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer, newImage } from "./animate.js"
 
-export const defHP = 20
+export const defHP = 25
 export const stateBounds = {
     stance: { x: 876, y: 476, w: 137, h: 258 },
     jump: { x: 354, y: 1102, w: 110, h: 269, offset: { x: 27, y: 0 } },
@@ -48,7 +48,7 @@ export class Hitbox extends Object {
     }
 
     check(o) {
-        if (o === this.creator || o.t.stun.active || o.fallen) return false
+        if (!o.dmg && (o === this.creator || (!o.plr && !this.creator.plr) || o.t.stun.active || o.fallen)) return false
 
         return (collision(this, o))
     }
@@ -118,7 +118,12 @@ export class Fighter extends Object {
         return this.timers
     }
 
-    setBaseState() {
+    remove() {
+        Fighters.splice(Fighters.indexOf(this), 1)
+        return
+    }
+
+    setBaseState() { // determines a base state and assigns to it
         let crouchDesired = false
         let xv = 0
 
@@ -142,21 +147,24 @@ export class Fighter extends Object {
             this.offset = { x: 0, y: 0 } // base
         }
 
-        if (MODE  == 1) {
-            const xv = this.velocity.x
-            if (xv > 0 && (rightConstraint - this.right) <= 200) {
-                globalThis.rightConstraint += xv
-                globalThis.leftConstraint += xv
+        if (MODE == 1) { 
+            // scrolling
+            if (this.plr) {
+                const xv = this.velocity.x
+                if (xv > 0 && (rightConstraint - this.right) <= 200) {
+                    globalThis.rightConstraint += xv
+                    globalThis.leftConstraint += xv
+                }
             }
         }
 
         const floorPos = (FLOOR - 258) // 258 is the stance height
-        this.grounded = (!this.fallen && (this.bottom >= floorPos && this.velocity.y == 0))
+        this.grounded = (!this.fallen && (this.bottom >= floorPos && this.velocity.y == 0) && !this.ignoreGravity)
 
-        if (this.velocity.y != 0) {
+        if (this.velocity.y != 0) { // y-velocity handling
             let diff = (this.position.y += this.velocity.y)
 
-            if (diff > floorPos) {
+            if (diff > floorPos && !this.ignoreGravity) {
                 this.position.y = floorPos
                 this.velocity.y = 0
             }
@@ -165,7 +173,7 @@ export class Fighter extends Object {
             }
         }
 
-        if (!this.t.stun.active || this.fallen) {
+        if (!this.t.stun.active || this.fallen) { // gravity handling
             if (!this.grounded) { // in air
                 if (this.state != "kick" && !this.fallen) this.state = "jump"
 
@@ -174,23 +182,25 @@ export class Fighter extends Object {
                 this.velocity.y += GRAVITY
 
                 if (diff >= floorPos && !this.ignoreGravity) { // land
-                    if (!this.fallen) {
+                    if (!this.fallen) { // landing from a jump
+                        this.lastStep = performance.now()
+
                         this.t.attack.stop()
                         this.marchLock = false
                         this.position.y = floorPos
                         this.velocity.y = 0
                     }
-                    else {
-                        if (this.bounces > 0) {
+                    else { // landing while fallen over
+                        if (this.bounces > 0) { // we need to bounce the player a bit
                             this.velocity.y -= (8 - (3 - this.bounces))
 
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
+                            this.bounces--
                         }
-                        else {
+                        else { // end this
                             this.position.y = floorPos
                             this.velocity.x = 0
                         }
-                        this.bounces--
                     }
                 }
                 else { // falling
@@ -198,7 +208,7 @@ export class Fighter extends Object {
                 }
             }
             else { // on ground
-                if (!this.marchLock) {
+                if (!this.marchLock && this.state != "hurt") {
                     if (this.velocity.x == 0) {
                         this.state = "stance"
                     }
@@ -208,34 +218,37 @@ export class Fighter extends Object {
                 }
             }
 
-            if (this.state == "crouch") this.velocity.x = 0
+            if (this.state == "crouch") this.velocity.x = 0 // shouldn't be able to move while crouching!
 
             const aTimer = this.t.attack
-            if (aTimer.check()) {
+            if (aTimer.check()) { // end attack
                 aTimer.stop()
                 this.setBaseState()
             }
         }
 
         const sTimer = this.t.stun
-        if (sTimer.check()) {
+        if (sTimer.check()) { // unstun/fall player
             sTimer.stop()
 
-            this.setBaseState()
-
-            if (this.fallen) this.fallen = false
+            if (this.hp > 0) {
+                this.setBaseState()
+                if (this.fallen) this.fallen = false
+            }
         }
 
         const sHTimer = this.t.shoot
-        if (sHTimer.check()) {
+        if (sHTimer.check()) { // shoot fireball!
             sHTimer.stop()
 
-            this.state = "shoot"
+            if (!sTimer.active && this.hp > 0) {
+                this.state = "shoot"
 
-            const lefty = (this.facing == "left")
+                const lefty = (this.facing == "left")
 
-            const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
-            new Hitbox(x, this.top, ((lefty) && -4) || 4, 0, 128, 128, this, 2, 10000, "template.jpg", FireballBounds, true)
+                const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
+                new Hitbox(x, this.top, ((lefty) && -5) || 5, 0, 128, 128, this, 2, 10000, "template.jpg", FireballBounds, true)
+            }
         }
 
         /*let isObstructed
@@ -247,7 +260,7 @@ export class Fighter extends Object {
             }
         }
         
-        if (isObstructed && this.velocity.x == 0 && !this.t.stun.active) {
+        if (isObstructed && this.velocity.x == 0 && !sTimer.active) {
             const nx = (isObstructed == "left" && 2) || ((isObstructed == "right") && -2) || 0
             if (nx != 0) {
                 this.beingPushed = true
@@ -336,20 +349,20 @@ export class Fighter extends Object {
     }
 
     jump() {
-        if (this.grounded && !this.t.attack.active && !this.t.stun.active) {
+        if (this.grounded && !this.t.attack.active && !this.t.stun.active && (this.hp > 0)) {
             this.marchLock = true
             this.velocity.y = -20
         }
     }
 
-    onDamage(dmg, x) {
+    onDamage(dmg) {
         this.velocity.x = ((((this.facing == "left") && 1) || -1) * dmg)
         this.marchLock = true
 
         const aTimer = this.t.attack
         if (aTimer.active) aTimer.stop()
 
-        this.hp -= dmg
+        this.hp = clamp(this.hp - dmg, 0, this.maxHP)
 
         this.state = "hurt"
 
@@ -368,6 +381,9 @@ export class Fighter extends Object {
             }
         }
         else {
+            this.t.stun.start()
+            this.state = "hurt"
+
             this.fallen = true
             this.velocity.y = -15
 
@@ -375,6 +391,10 @@ export class Fighter extends Object {
                 if (MODE == 1) {
                     this.ignoreGravity = true
                     globalThis.enemiesRemaining--
+
+                    setTimeout(() => {
+                        this.remove()
+                    }, 1000)
                 }
             }
             else {
@@ -386,7 +406,7 @@ export class Fighter extends Object {
 
     punch() {
         const aTimer = this.t.attack
-        if (this.grounded && !aTimer.active && !this.t.stun.active) {
+        if (this.grounded && !aTimer.active && !this.t.stun.active && (this.hp > 0)) {
             this.marchLock = true
             this.state = "punch"
 
@@ -402,11 +422,11 @@ export class Fighter extends Object {
 
     kick() {
         const aTimer = this.t.attack
-        if (!aTimer.active && !this.t.stun.active) {
+        if (!aTimer.active && !this.t.stun.active && (this.hp > 0)) {
             this.marchLock = true
             this.state = "kick"
 
-            aTimer.start(400)
+            aTimer.start(600)
 
             if (this.grounded) this.velocity.x = 0
 
@@ -417,7 +437,7 @@ export class Fighter extends Object {
 
     fireball() {
         const aTimer = this.t.attack
-        if (this.grounded && !aTimer.active && !this.t.stun.active) {
+        if (this.grounded && !aTimer.active && !this.t.stun.active && (this.hp > 0)) {
             this.marchLock = true
 
             this.state = "hurt" // just for the looks

@@ -92,6 +92,10 @@ export function collisionFighter(fighterA, fighterB) {
     return null; // No collision
 }
 
+export function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {
         x: 0, 
