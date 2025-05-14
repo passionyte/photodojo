@@ -56,6 +56,8 @@ export class Animator {
     }
 
     play(customInt) {
+        if (this.playing) return
+
         this.playing = true
         this.ended = false
 

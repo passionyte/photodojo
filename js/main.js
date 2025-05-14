@@ -1,11 +1,11 @@
 // Passionyte 2025
 'use strict'
 
-import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt, cloneArray } from "./globals.js"
+import { CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, keyClasses, FLOOR, randInt, cloneArray, KEYS } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators } from "./animate.js"
 import { profile, saveData } from "./profile.js"
-import { ImageMemory, newImage } from "./images.js"
+import { ImageMemory } from "./images.js"
 
 let NOW = performance.now()
 let frame_time = NOW
@@ -39,12 +39,12 @@ let lastFlame = 0
 let distSinceLastGuy = 0
 let lastGuySpawned = 0 
 const distBetweenGuys = (w / 2)
-globalThis.enemiesRemaining = 1
+globalThis.enemiesRemaining = 100
 
 // Results
 let timeStarted = 0
 let resultsShown = false
-let best = profile.best || 0
+let grade = "Fail"
 
 // END
 
@@ -52,7 +52,7 @@ let best = profile.best || 0
 let bg0x = 0
 let bg1x = w
 
-const P1 = new Fighter(cenX, (FLOOR - 258), 1)
+let P1
 
 // Input Manager
 const downKeys = {}
@@ -80,25 +80,34 @@ export function isKeyFromClassDown(c) {
 */
 function keypress(event) {
     const key = event.keyCode
-    if (downKeys[key] || !gamePlaying) return
+    if (downKeys[key]) return
   
     downKeys[key] = true
   
-    if (keyClasses.jump.includes(key)) { // TODO: should be a 'controller' class maybe
-        P1.jump()
+    if (gamePlaying && P1) {
+        if (keyClasses.jump.includes(key)) { // TODO: should be a 'controller' class maybe
+            P1.jump()
+        }
+        else if (keyClasses.action.includes(key)) {
+            if (isKeyFromClassDown(P1.facing)) {
+                P1.punch()
+            }
+            else if ((P1.velocity.x == 0 || !P1.grounded) && P1.state != "crouch") {
+                P1.kick()
+            }
+            else if (P1.state != "crouch") {
+                P1.fireball()
+            }
+            else { // special move
+    
+            }
+        }
     }
-    else if (keyClasses.action.includes(key)) {
-        if (isKeyFromClassDown(P1.facing)) {
-            P1.punch()
-        }
-        else if ((P1.velocity.x == 0 || !P1.grounded) && P1.state != "crouch") {
-            P1.kick()
-        }
-        else if (P1.state != "crouch") {
-            P1.fireball()
-        }
-        else { // special move
-
+    else {
+        if (key == KEYS.SPACE) {
+            if (menu == "title") {
+                initializeGame()
+            }
         }
     }
 }
@@ -124,46 +133,59 @@ new Animator("clearout", "tween", 250, undefined, {obj: clearText, prop: {x: -10
 new Animator("blackin", "tween", 500, undefined, {obj: blackTrans, prop: {val: 0}})
 new Animator("blackout", "tween", 500, undefined, {obj: blackTrans, prop: {val: 1}})
 
+function determineRank(save, rem = enemiesRemaining, hp = P1.hp, points) {
+    let enemiesDefeated = 0
+
+    if (!points) {
+        enemiesDefeated = (100 - rem)
+        const hpPerc = Math.floor((hp / defHP) * 100)
+        points = (hpPerc * 2)
+    }
+
+    let rank = "Fail"
+
+    if (points || (enemiesDefeated <= 0)) {
+        if (points >= 175) {
+            rank = "S"
+        }
+        else if (points >= 100) {
+            rank = "A"
+        }
+        else if (points >= 50) {
+            rank = "B"
+        }
+        else if (points >= 0) {
+            rank = "C"
+        }
+    }
+
+    if (save) {
+        if (points > profile.best) {
+            profile.best = points
+
+            saveData()
+        }
+    }
+
+    return rank
+}
+
 function results() {
     clearText.visible = false
     Animators.blackin.play()
+    setTimeout(function() {
+        menu = "results"
+        Animators.blackout.play()
+    }, 500)
 
-    const enemiesDefeated = (100 - enemiesRemaining)
-    const hpPerc = Math.floor((P1.hp / defHP) * 100)
-    const points = (hpPerc * 2)
+    grade = determineRank()
 
-    let grade = "Fail"
-
-    if (points >= 175) {
-        grade = "S"
-    }
-    else if (points >= 150) {
-        grade = "A+"
-    }
-    else if (points >= 125) {
-        grade = "A"
-    }
-    else if (points >= 100) {
-        grade = "B"
-    }
-    else if (points >= 60) {
-        grade = "C"
-    }
-    else if (points >= 25) {
-        grade = "D"
-    }
-    else if (points > 0) {
-        grade = "E"
-    }
-
-    if (grade == "Fail") {
+   /* if (grade == "Fail") {
 
     }
     else {
         console.log(`RESULTS!!! HP: ${hpPerc}% | Points: ${points} | Enemies Defeated: ${enemiesDefeated} | Grade: ${grade}`)
-    }
-
-    
+    }*/
 }
 
 function strToUINum(str) { // improve later. this is overengineered ain't it.
@@ -205,6 +227,28 @@ function singlePlayerIntro(cb) {
             gamePlaying = true
             Animators.attack.play()
         }, 1050)
+    }
+}
+
+function initializeGame() {
+    P1 = new Fighter(cenX, (FLOOR - 258), 1)
+    gamePlaying = true
+    menu = null
+
+    // (re)set some game variables
+    bg0x = 0
+    bg1x = w
+
+    if (MODE == 1) {
+        distSinceLastGuy = 0
+        lastGuySpawned = 0
+        globalThis.enemiesRemaining = ((!DEBUG && 100)) || 1
+
+        singlePlayerIntro()
+        Animators.nav.play()
+    }
+    else {
+
     }
 }
 
@@ -344,6 +388,7 @@ function update() {
             CTX.drawImage(ImageMemory[`num${strToUINum((100 - enemiesRemaining))[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
         }
 
+        CTX.textAlign = "left"
         CTX.fillStyle = "rgb(255, 255, 152)"
         CTX.font = "24px Humming"
         CTX.fillText("enemies", (cenX + 440), 75, 200)
@@ -412,8 +457,8 @@ function update() {
             
             CTX.drawImage(ImageMemory["title.png"], 0, 0, 512, 256, 100, -100, 1024, 512)
 
-            if ((NOW - lastFlame) > 200) {
-                if (flamenum < 3) {
+            if ((NOW - lastFlame) > 100) {
+                if (flamenum < 2) {
                     flamenum++
                 }
                 else {
@@ -423,14 +468,62 @@ function update() {
                 lastFlame = NOW
             }
 
-            CTX.drawImage(ImageMemory[`flame${flamenum}.png`], 0, 0, 1400, 1000, -106, -50, 1650, 1650)
+            CTX.drawImage(ImageMemory[`flame${flamenum}.png`], 0, 0, w, h, -305, -70, 1810, 1400)
+
+            CTX.textAlign = "center"
+
+            CTX.font = "30px Humming"
+            CTX.fillText("Passionyte 2025", cenX, (h - 50), 400)
 
             CTX.fillStyle = "yellow"
-            CTX.font = "30px Humming"
-            CTX.fillText("JS", cenX, (cenY - 125), 200)
+            CTX.fillText("JS", cenX, (cenY - 100), 200)
 
-            CTX.font = "15px Humming"
-            CTX.fillText("Press Space to Continue", (cenX - 75), (cenY - 25), 200)
+            CTX.font = "18px Humming"
+            CTX.fillText("Press Space to Continue", cenX, (cenY - 25), 400)
+        }
+        else if (menu == "results") {
+            CTX.drawImage(ImageMemory["survivalbg.png"], 0, 0, 256, 256, 0, 0, w, (h * 1.33))
+
+            CTX.beginPath()
+            CTX.roundRect((cenX + 100), (cenY - 275), 550, 550, 40)
+            CTX.fillStyle = "rgba(0, 0, 0, 0.5)"
+            CTX.fill()
+
+            CTX.font = "45px Humming"
+            CTX.fillStyle = "white"
+
+            grade = "S"
+
+            if (grade == "Fail") {
+                CTX.fillText("Score", (cenX + 115), (cenY - 200), 200)
+                CTX.fillText("Best score", (cenX + 115), (cenY + 100), 400)
+            }
+            else {
+                CTX.drawImage(ImageMemory["survivalclear.png"], 0, 0, 512, 256, -400, -200, 1200, 600)
+
+                CTX.fillText("Health", (cenX + 115), (cenY - 200), 200)
+                CTX.fillText("Time", (cenX + 115), (cenY - 100), 200)
+
+                CTX.font = "52px Humming"
+                CTX.fillText("Rank", (cenX + 115), cenY, 300)
+
+                // health
+                CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 250), 275, 75)
+
+                // time
+                CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 150), 275, 75)
+
+                // rank
+                CTX.drawImage(ImageMemory["scoreboxgreen.png"], 0, 0, 131, 25, (cenX + 115), (cenY + 25), 450, 90)
+
+                CTX.drawImage(ImageMemory[`grade${grade}.png`], 0, 0, 48, 48, (w - 150), (cenY + 150), 144, 144)
+
+                // best
+
+                CTX.font = "40px Humming"
+                CTX.fillStyle = "rgb(255, 255, 152)"
+                CTX.fillText(`High score ${profile.best} pts. ${determineRank(false, undefined, undefined, profile.best)}`, (cenX + 100), (h - 50), 600)
+            }
         }
     }
     
@@ -442,7 +535,5 @@ function update() {
     } 
 }
 update()
-if (MODE == 1) singlePlayerIntro()
-Animators.nav.play()
 
 export default { isKeyFromClassDown }
