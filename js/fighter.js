@@ -3,7 +3,8 @@
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter, clamp } from "./globals.js"
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
-import { Timer, newImage } from "./animate.js"
+import { Timer } from "./animate.js"
+import { newImage } from "./images.js"
 
 export const defHP = 30
 export const stateBounds = {

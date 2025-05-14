@@ -1,0 +1,36 @@
+On run, player is shown a basic title screen(?) Press space to start. (or perhaps with a Play, Create Character and/or Settings button)
+
+Then there's a menu screen where player chooses between versus (2 players) or singleplayer (survival)
+
+Then the player chooses their Photo Dojo character! (or go back and create one because the menu is locked... but I don't know how feasible that is)
+
+FIGHTER MOVES
+
+Walking - self explanatory
+    x velocity is parallel to the direction the player wishes to move
+Crouching - useful for avoiding attacks, but can't move forward or backward
+    halt x velocity, shrink hitbox to sprite
+Jumping - useful for avoiding attacks, drop kicking and looking cool
+    increase y velocity, steadily decrease that by a gravity constant, needs to be floaty
+
+For the following, hitboxes need to have a versatile implementation. I need to be in control of everything.
+
+Punching - basic punch with decent range, can be dodged by crouching
+Kicking - strong kick with less range, works in the air
+Fireball - pew! projectile attack with small damage, can be dodged by crouching
+Signature/Special - a move tied to a fighter's type (such as a Kung Fu kick if the fighter is a Kung Fu Master)
+Desperation - the strongest move only usable a single time once a Fighter gets to low health (also tied to the fighter type)
+
+SINGLEPLAYER | SURVIVAL MODE
+
+Player starts and scrolls a screen by running off to the right which reveals enemies
+The goal is for the player to defeat 100 enemies.
+
+The enemies can either punch, kick or shoot fireballs!
+Some may even be tiny (but run fast), or some may even be giant!
+
+MULTIPLAYER | VERSUS MODE
+
+Two players can play in this mode! One uses WASD and R, the other uses IJKL and P.
+Essentially a classic street fighter battle, whoever defeats the other wins!
+All moves are available; leading to a chaotic but fun match

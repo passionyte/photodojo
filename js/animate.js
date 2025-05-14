@@ -2,7 +2,6 @@
 'use strict'
 
 export const Animators = {}
-export const ImageMemory = {}
 
 export class Animator {
     name // string ref.
@@ -38,7 +37,19 @@ export class Animator {
         else if (this.type == "tween") {
             this.time = (performance.now() - this.start)
 
-            for (let p in this.properties) this.object[p] = (this.startProps[p] - (this.properties[p] / (this.duration / this.time)))
+            for (let p in this.properties) {
+                const div = (this.duration / this.time)
+                let v
+
+                if (this.properties[p] < this.startProps[p]) {
+                    v = ((this.properties[p] + this.startProps[p]) - (this.startProps[p] / div))
+                }
+                else {
+                    v = (this.startProps[p] + (this.properties[p] / div))
+                }
+
+                this.object[p] = v
+            }
 
             if (this.time >= this.duration) this.stop()
         }
@@ -115,18 +126,6 @@ export class Animator {
 
         Animators[n] = this
     }
-}
-
-export function newImage(n, w, h) {
-    let i = ImageMemory[n]
-    if (i) return i
-
-    i = new Image()
-    i.src = `../imgs/${n}`
-
-    ImageMemory[n] = i
-
-    return i
 }
 
 export class Timer { // Used for Fighter class primarily; can be used for other stuff though
