@@ -13,7 +13,7 @@ let frame_time = NOW
 // Fundamental Variables
 export let MODE = 1 // 1 is singleplayer, 2 is multiplayer
 let gamePlaying = false
-let menu = "title"
+let menu = "results"
 
 // Boundary Variables
 export const initialLeft = 0
@@ -44,7 +44,7 @@ globalThis.enemiesRemaining = 100
 // Results
 let timeStarted = 0
 let completionTime = 0
-let rank = "Fail"
+let rank = "S"
 let pointsStatic = 0
 let hpStatic = 0
 let enemiesDefeated = 0
@@ -513,21 +513,37 @@ function update() {
             else {
                 CTX.drawImage(ImageMemory["survivalclear.png"], 0, 0, 512, 256, -400, -200, 1200, 600)
 
-                CTX.fillText("Health", (cenX + 115), (cenY - 200), 200)
-                CTX.fillText("Time", (cenX + 115), (cenY - 100), 200)
+                CTX.fillText("Health", (cenX + 115), (cenY - 200))
+                CTX.fillText("Time", (cenX + 115), (cenY - 100))
 
                 CTX.font = "52px Humming"
-                CTX.fillText("Rank", (cenX + 115), cenY, 300)
+                CTX.fillText("Rank", (cenX + 115), cenY)
 
                 // health
                 CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 250), 275, 75)
 
                 let strHP = strToUINum(Math.floor(((hpStatic) / defHP) * 100).toString())
-                for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`score${strHP[i]}.png`], 0, 0, 32, 32, ((cenX + 345) + (42 * i)), (cenY - 235), 48, 48)
+                for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`score${strHP[i]}.png`], 0, 0, 32, 32, ((cenX + 345) + (40 * i)), (cenY - 235), 48, 48)
                 strHP = null
+
+                CTX.font = "38px Humming"
+                CTX.fillStyle = "black"
+                CTX.fillText("%", (cenX + 480), (cenY - 200))
 
                 // time
                 CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 150), 275, 75)
+
+                const minutes = Math.round((completionTime / 60))
+                const seconds = Math.round(completionTime - (minutes * 60))
+
+                const mS = strToUINum(minutes.toString(), 1)
+                const sS = strToUINum(seconds.toString(), 1)
+
+                // draw image numbers
+                for (let i = 0; (i < 2); i++) CTX.drawImage(ImageMemory[`score${mS[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 320) + (40 * i)), (cenY - 135), 48, 48)
+                for (let i = 0; (i < 2); i++) CTX.drawImage(ImageMemory[`score${sS[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 435) + (40 * i)), (cenY - 135), 48, 48)
+
+                
 
                 // rank
                 CTX.drawImage(ImageMemory["scoreboxgreen.png"], 0, 0, 131, 25, (cenX + 115), (cenY + 25), 450, 90)
@@ -540,7 +556,7 @@ function update() {
 
                 CTX.font = "40px Humming"
                 CTX.fillStyle = "rgb(255, 255, 152)"
-                CTX.fillText(`High score ${profile.best.points} pts. ${profile.best.rank}`, (cenX + 100), (h - 50), 600)
+                CTX.fillText(`High score ${profile.best.points} pts. ${profile.best.rank}`, (cenX + 100), (h - 50))
             }
         }
     }
