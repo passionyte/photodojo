@@ -43,8 +43,11 @@ globalThis.enemiesRemaining = 100
 
 // Results
 let timeStarted = 0
-let resultsShown = false
-let grade = "Fail"
+let completionTime = 0
+let rank = "Fail"
+let pointsStatic = 0
+let hpStatic = 0
+let enemiesDefeated = 0
 
 // END
 
@@ -128,43 +131,29 @@ new Animator("enemies", "flashframe", 1000, undefined, {goal: 5}, singlePlayerIn
 new Animator("attack", "frame", 200, 500, {goal: 11})
 new Animator("ready", "frame", 50, 1000, {goal: 5})
 new Animator("nav", "frame", 250, 500, {goal: 5})
-new Animator("clearin", "tween", 250, 2000, {obj: clearText, prop: {x: (cenX - 50)}}, function() {Animators.clearout.play()})
+new Animator("clearin", "tween", 250, 4000, {obj: clearText, prop: {x: (cenX - 50)}}, function() {Animators.clearout.play()})
 new Animator("clearout", "tween", 250, undefined, {obj: clearText, prop: {x: -100}}, results)
 new Animator("blackin", "tween", 500, undefined, {obj: blackTrans, prop: {val: 0}})
 new Animator("blackout", "tween", 500, undefined, {obj: blackTrans, prop: {val: 1}})
 
-function determineRank(save, rem = enemiesRemaining, hp = P1.hp, points) {
-    let enemiesDefeated = 0
+function determinePoints() { // determines number of points (intended to be used after round, survival only)
+    return ((Math.floor((hpStatic / defHP) * 100) * 2) - clamp((completionTime - 150), 0, completionTime)) // consider health and time
+}
 
-    if (!points) {
-        enemiesDefeated = (100 - rem)
-        const hpPerc = Math.floor((hp / defHP) * 100)
-        points = (hpPerc * 2)
-    }
-
+function determineRank(points = pointsStatic) { // determines rank from points (intended for survival use only)
     let rank = "Fail"
 
-    if (points || (enemiesDefeated <= 0)) {
-        if (points >= 175) {
-            rank = "S"
-        }
-        else if (points >= 100) {
-            rank = "A"
-        }
-        else if (points >= 50) {
-            rank = "B"
-        }
-        else if (points >= 0) {
-            rank = "C"
-        }
+    if (points >= 175) {
+        rank = "S"
     }
-
-    if (save) {
-        if (points > profile.best) {
-            profile.best = points
-
-            saveData()
-        }
+    else if (points >= 100) {
+        rank = "A"
+    }
+    else if (points >= 50) {
+        rank = "B"
+    }
+    else if (points > 0) {
+        rank = "C"
     }
 
     return rank
@@ -173,45 +162,38 @@ function determineRank(save, rem = enemiesRemaining, hp = P1.hp, points) {
 function results() {
     clearText.visible = false
     Animators.blackin.play()
-    setTimeout(function() {
+
+    setTimeout(function() { // wait until blackin is done
         menu = "results"
         Animators.blackout.play()
     }, 500)
 
-    grade = determineRank()
+    completionTime = ((NOW - timeStarted) / 1000) // time in seconds
 
-   /* if (grade == "Fail") {
+    hpStatic = P1.hp
 
+    enemiesDefeated = (100 - enemiesRemaining)
+
+    pointsStatic = determinePoints()
+    rank = determineRank()
+
+    if (enemiesDefeated > profile.best.enemies || (pointsStatic > profile.best.points)) { // save data if results are better than the best
+        profile.best.enemies = enemiesDefeated
+        profile.best.points = pointsStatic
+        profile.best.rank = rank
+
+        saveData()
     }
-    else {
-        console.log(`RESULTS!!! HP: ${hpPerc}% | Points: ${points} | Enemies Defeated: ${enemiesDefeated} | Grade: ${grade}`)
-    }*/
 }
 
-function strToUINum(str) { // improve later. this is overengineered ain't it.
+function strToUINum(str, zeroes = 3) { // Converts 96 to 096, or 7 to 007
     let result = ""
 
-    let num = str
     str = str.toString()
 
-    if (num < 100) {
-        result += "0"
-    }
-    else {
-        const s = str[0]
-        result += s
-        str = str.replace(s, "")
-    }
+    for (let i = 0; (i < (zeroes - str.length)); i++) result += "0"
 
-    if (num < 10) {
-        result += "0"
-    }
-    else {
-        const s = str[0]
-        result += s
-        str = str.replace(s, "")
-    }
-    result += str[0]
+    result += str
 
     return result
 }
@@ -232,7 +214,6 @@ function singlePlayerIntro(cb) {
 
 function initializeGame() {
     P1 = new Fighter(cenX, (FLOOR - 258), 1)
-    gamePlaying = true
     menu = null
 
     // (re)set some game variables
@@ -384,9 +365,9 @@ function update() {
 
         CTX.drawImage(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
 
-        for (let i = 0; (i < 3); i++) {
-            CTX.drawImage(ImageMemory[`num${strToUINum((100 - enemiesRemaining))[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
-        }
+        let rem = strToUINum((100 - enemiesRemaining))
+        for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (cenX + 360 + (24 * i)), 52, 27, 27)
+        rem = null
 
         CTX.textAlign = "left"
         CTX.fillStyle = "rgb(255, 255, 152)"
@@ -394,26 +375,30 @@ function update() {
         CTX.fillText("enemies", (cenX + 440), 75, 200)
 
         // Handle 'Beat 100 enemies'
-        const eAnim = Animators.enemies
+        let eAnim = Animators.enemies
         if (eAnim.times > -1) CTX.drawImage(ImageMemory[((!eAnim.flashing) && "100enemies.png") || "100enemiesflash.png"], 0, 0, 1200, 800, (cenX - 150), (cenY - 100), 3000, 2000)
+        eAnim = null
 
         // Handle 'are you ready'
-        const rAnim = Animators.ready
+        let rAnim = Animators.ready
         if (rAnim.times > -1) CTX.drawImage(ImageMemory[`ready${rAnim.times}.png`], 0, 0, 128, 64, (cenX - 250), (cenY - 160), 512, 256)
+        rAnim = null
 
         // Handle 'Attack!'
-        const aAnim = Animators.attack
+        let aAnim = Animators.attack
         if (aAnim.times > -1) CTX.drawImage(ImageMemory[`attack${aAnim.times}.png`], 0, 0, 128, 64, (cenX - 185), (cenY - 120), 400, 200)
+        aAnim = null
 
         // Handle low movement arrows
-        const nAnim = Animators.nav
+        let nAnim = Animators.nav
         if (nAnim.times > -1) CTX.drawImage(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
-
+    
         if (nAnim.ended && ((NOW - lastGuySpawned) > 5000)) nAnim.play()
+        nAnim = null
 
         // Handle 'victory' clear text
 
-        if (clearText.visible) CTX.drawImage(ImageMemory["clear.png"], 0, 0, 128, 64, clearText.x, clearText.y, 256, 128)
+        if (clearText.visible) CTX.drawImage(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
 
         if (!P1.alive || ((SINGLE) && (enemiesRemaining <= 0)) && gamePlaying) {
             gamePlaying = false
@@ -455,10 +440,10 @@ function update() {
 
             CTX.fillRect(0, 0, w, h)
             
-            CTX.drawImage(ImageMemory["title.png"], 0, 0, 512, 256, 100, -100, 1024, 512)
+            CTX.drawImage(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 240), (cenY - 350), 512, 256)
 
             if ((NOW - lastFlame) > 100) {
-                if (flamenum < 2) {
+                if (flamenum < 3) {
                     flamenum++
                 }
                 else {
@@ -492,11 +477,38 @@ function update() {
             CTX.font = "45px Humming"
             CTX.fillStyle = "white"
 
-            grade = "S"
-
-            if (grade == "Fail") {
+            if (rank == "Fail") {
+                CTX.font = "50px Humming"
                 CTX.fillText("Score", (cenX + 115), (cenY - 200), 200)
-                CTX.fillText("Best score", (cenX + 115), (cenY + 100), 400)
+                CTX.drawImage(ImageMemory["scoreboxlarge.png"], 0, 0, 128, 38, (cenX + 115), (cenY - 160), 450, 128)
+
+                // draw points
+                let strPoints = strToUINum(pointsStatic.toString())
+
+                for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`score${strPoints[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 110) + (80 * i)), (cenY - 140), 96, 96)
+
+                strPoints = null
+
+                CTX.font = "38px Humming"
+                CTX.fillStyle = "black"
+                CTX.fillText("enemies", (cenX + 375), (cenY - 60))
+
+                CTX.font = "40px Humming"
+                CTX.fillStyle = "white"
+                CTX.fillText("Best score", (cenX + 115), (cenY + 100))
+
+                CTX.drawImage(ImageMemory["scoreboxlong.png"], 0, 0, 128, 22, (cenX + 115), (cenY + 125), 450, 75)
+
+                // draw best
+                let strBest = strToUINum(profile.best.points.toString())
+
+                for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`score${strBest[i]}.png`], 0, 0, 32, 32, ((cenX + 185) + (55 * i)), (cenY + 132), 64, 64)
+
+                CTX.font = "32px Humming"
+                CTX.fillStyle = "black"
+                CTX.fillText("enemies", (cenX + 370), (cenY + 185))
+
+                strBest = null
             }
             else {
                 CTX.drawImage(ImageMemory["survivalclear.png"], 0, 0, 512, 256, -400, -200, 1200, 600)
@@ -510,19 +522,25 @@ function update() {
                 // health
                 CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 250), 275, 75)
 
+                let strHP = strToUINum(Math.floor(((hpStatic) / defHP) * 100).toString())
+                for (let i = 0; (i < 3); i++) CTX.drawImage(ImageMemory[`score${strHP[i]}.png`], 0, 0, 32, 32, ((cenX + 345) + (42 * i)), (cenY - 235), 48, 48)
+                strHP = null
+
                 // time
                 CTX.drawImage(ImageMemory["scorebox.png"], 0, 0, 80, 20, (cenX + 300), (cenY - 150), 275, 75)
 
                 // rank
                 CTX.drawImage(ImageMemory["scoreboxgreen.png"], 0, 0, 131, 25, (cenX + 115), (cenY + 25), 450, 90)
 
-                CTX.drawImage(ImageMemory[`grade${grade}.png`], 0, 0, 48, 48, (w - 150), (cenY + 150), 144, 144)
+
+
+                CTX.drawImage(ImageMemory[`grade${rank}.png`], 0, 0, 48, 48, (w - 150), (cenY + 150), 144, 144)
 
                 // best
 
                 CTX.font = "40px Humming"
                 CTX.fillStyle = "rgb(255, 255, 152)"
-                CTX.fillText(`High score ${profile.best} pts. ${determineRank(false, undefined, undefined, profile.best)}`, (cenX + 100), (h - 50), 600)
+                CTX.fillText(`High score ${profile.best.points} pts. ${profile.best.rank}`, (cenX + 100), (h - 50), 600)
             }
         }
     }

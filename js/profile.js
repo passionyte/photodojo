@@ -1,5 +1,9 @@
 export const defProfile = {
-    best: 0
+    best: {
+        points: 0,
+        rank: "Fail",
+        enemies: 0
+    }
 }
 
 const key = "PhotoDojo"
