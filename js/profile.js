@@ -11,8 +11,8 @@ export const defProfile = {
 }
 
 const key = "PhotoDojoJS"
-export let profile = loadData() || defProfile
 export let loaded = false
+export let profile = loadData() || defProfile
 
 export function saveData(newProfile) {
     if (newProfile.best > 0 && loaded) {
