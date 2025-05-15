@@ -284,7 +284,7 @@ function update() {
 
                         for (let i = 0; (i < amt); i++) { // Generate the enemies, set their type and set distance and time to now
                             const guy = new Fighter(P1.left + w + (i * 200), (FLOOR - 258), undefined, undefined, undefined, 4)
-                            guy.enemyType = randInt(1, 3)
+                            guy.enemyType = randInt(1, 200)
                             distSinceLastGuy = P1.left
                             lastGuySpawned = NOW
                         }
@@ -311,12 +311,12 @@ function update() {
                         let movement
         
                         if (a.canAttack) {
-                            if (a.enemyType == 1) {
+                            if (a.enemyType <= 50) {
                                 // kick type
                                 movement = 4
                                 if (Math.random() < 0.004) a.kick()
                             }
-                            else if (a.enemyType == 2) {
+                            else if (a.enemyType >= 175) {
                                 // fireball type
                                 if (Math.random() < 0.002) a.fireball()
                             }
