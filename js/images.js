@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: images.js
- * Description: Handles image memory and creation.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 

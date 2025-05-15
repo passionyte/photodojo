@@ -1,16 +1,8 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: fighter.js
- * Description: Handles the 'Fighter' and 'Hitbox' class, integral to the gameplay.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter, clamp } from "./globals.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp } from "./globals.js"
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer } from "./animate.js"
 import { newImage } from "./images.js"
@@ -42,7 +34,7 @@ const FighterTimers = { // What timers to create + duration
     stun: 0,
     shoot: 500,
     lag: 0
-}   
+}
 
 export class Hitbox extends Object {
     dmg // damage applied to player
@@ -64,9 +56,9 @@ export class Hitbox extends Object {
         if (this.hits.includes(hit)) return
 
         const isntPlr = (hit.dmg)
-        const teamCheck = (this.creator.plr == hit.plr || (isntPlr && this.creator.plr == hit.creator.plr))
+        const teamCheck = (this.creator.plr == hit.plr || (isntPlr && (this.creator.plr == hit.creator.plr)))
 
-        if (isntPlr || !teamCheck) {
+        if (!teamCheck) {
             if (hit != this.creator) {
                 if (isntPlr || (!hit.t.stun.active && !hit.fallen && !(hit.state == "crouch" && this.type == "fireball"))) {
                     const col = collision(this, hit)
@@ -296,30 +288,6 @@ export class Fighter extends Object {
         const lTimer = this.t.lag
         if (lTimer.check()) lTimer.stop() // end attack lag
 
-        /*let isObstructed
-        for (const a of Fighters) {
-            if (a.plr != this.plr) {
-                isObstructed = collisionFighter(this, a)
-
-                if (isObstructed) break
-            }
-        }
-        
-        if (isObstructed && this.velocity.x == 0 && !sTimer.active) {
-            const nx = (isObstructed == "left" && 2) || ((isObstructed == "right") && -2) || 0
-            if (nx != 0) {
-                this.beingPushed = true
-                this.velocity.x = nx
-            }
-        }
-        else {
-            if (this.beingPushed) {
-                this.beingPushed = false
-                //this.velocity.x = 0
-                this.setBaseState()
-            }
-        }*/
-
         super.update()
         this.draw()
     }
@@ -346,49 +314,50 @@ export class Fighter extends Object {
         }
 
         if (!this.fallen) {
+            const w = this.bounds.w
+            const h = this.bounds.h
+
             if (this.facing == "left") { // flip our player around
-                const w = this.bounds.w
-                const h = this.bounds.h
+                const cenX = (w / 2)
+                const cenY = (h / 2)
 
                 CTX.save()
-                CTX.translate((this.gLeft + (w / 2)), (this.top + (h / 2)))
+                CTX.translate((this.gLeft + cenX), (this.top + cenY))
                 CTX.scale(-1, 1)
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -(w / 2), -(h / 2), w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -cenX, -cenY, w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
                 CTX.restore()
             }
             else {
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.gLeft, this.top, this.bounds.w, this.bounds.h)
+                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, this.gLeft, this.top, w, h)
             }
         }
         else {
-            const w = this.bounds.w;
-            const h = this.bounds.h;
+            const w = this.bounds.w
+            const h = this.bounds.h
 
-            // Correct pivot point for rotation
-            const pivotX = this.gLeft + w / 2;
-            const pivotY = this.top + h / 2; // Center the pivot point vertically
+            const cenX = (w / 2)
+            const cenY = (h / 2)
 
-            CTX.save();
-            CTX.translate(pivotX, pivotY);
+            // Center a pivot point for rotation
+            const pivotX = (this.gLeft + cenX)
+            const pivotY = (this.top + cenY)
 
-            const lefty = (this.facing == "left");
-            if (lefty) {
-                CTX.rotate(Math.PI / 2); // Rotate clockwise for left-facing fighters
-                CTX.translate(-w / 2, -h / 2); // Center the fighter within the hitbox
-                CTX.scale(-1, 1); // Flip horizontally
-            } else {
-                CTX.rotate(-Math.PI / 2); // Rotate counterclockwise for right-facing fighters
-                CTX.translate(-w / 2, -h / 2); // Center the fighter within the hitbox
+            CTX.save()
+            CTX.translate(pivotX, pivotY)
+
+            const lefty = (this.facing == "left")
+            if (lefty) { // Rotate clockwise
+                CTX.rotate(Math.PI / 2) // Rotate clockwise for left-facing fighters
+                CTX.translate(-cenX, -cenY)
+                CTX.scale(-1, 1) // Flip horizontally
+            } 
+            else { // Rotate counter-clockwise
+                CTX.rotate(-(Math.PI / 2))
+                CTX.translate(-cenX, -cenY)
             }
 
-            CTX.drawImage(
-                this.img,
-                this.bounds.x, this.bounds.y,
-                w, h,
-                ((lefty) && -195) || -55, 0,
-                w, h
-            );
-            CTX.restore();
+            CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, ((lefty) && -195) || -55, 0, w, h)
+            CTX.restore()
         }
         if (DEBUG) super.draw(!this.plr && "rgba(100, 100, 100, 0.5)")
     }
@@ -415,7 +384,7 @@ export class Fighter extends Object {
             const sTimer = this.t.stun
             sTimer.start()
 
-            if ((dmg >= 4) || !this.grounded) { // Heavy damage causing us to fall
+            if (((dmg >= 4) || !this.grounded) && !this.fallen) { // Heavy damage causing us to fall
                 sTimer.duration = 1200
                 this.fallen = true
                 this.bounces = 3
@@ -469,12 +438,12 @@ export class Fighter extends Object {
             this.marchLock = true
             this.state = "kick"
 
-            this.t.attack.start(600)
+            this.t.attack.start(500)
 
             if (this.grounded) this.velocity.x = 0
 
-            const x = ((this.facing != "left") && this.right) || (this.left - 100)
-            new Hitbox(x, (this.top + 40), 0, 0, 100, 156, "kick", this, 4, 350)
+            const x = ((this.facing != "left") && this.right) || (this.left - 18)
+            new Hitbox(x, (this.top + 125), 0, 0, 70, 70, "kick", this, 4, 300)
         }
     }
 

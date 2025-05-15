@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: globals.js
- * Description: Global references used by other scripts, contains 'Object' class.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -68,37 +60,7 @@ export function clamp(x, min, max) {
 }
 
 export function collision(o0, o1) {
-     const col = (
-            o0.right > o1.left &&
-            o0.left < o1.right &&
-            o0.bottom > o1.top &&
-            o0.top < o1.bottom
-        )
-
-    return col
-}
-
-export function collisionFighter(fighterA, fighterB) {
-    // Get the positions and dimensions of both fighters
-    const aLeft = fighterA.left;
-    const aRight = fighterA.left + fighterA.bounds.w;
-    const aTop = fighterA.top;
-    const aBottom = fighterA.top + fighterA.bounds.h;
-
-    const bLeft = fighterB.left;
-    const bRight = fighterB.left + fighterB.bounds.w;
-    const bTop = fighterB.top;
-    const bBottom = fighterB.top + fighterB.bounds.h;
-
-    // Check for overlap between the two bounding boxes
-    if (aRight > bLeft && aLeft < bRight && aBottom > bTop && aTop < bBottom) {
-        // Calculate the direction of the collision
-        if (aRight > bLeft && aLeft < bLeft) return 'right';   // Fighter A is on the left of Fighter B, collision from the right
-        if (aLeft < bRight && aRight > bRight) return 'left';   // Fighter A is on the right of Fighter B, collision from the left
-        if (aBottom > bTop && aTop < bTop) return 'down';       // Fighter A is above Fighter B, collision from below
-        if (aTop < bBottom && aBottom > bBottom) return 'up';   // Fighter A is below Fighter B, collision from above
-    }
-    return null; // No collision
+    return ((o0.right > o1.left) && (o0.left < o1.right) && (o0.bottom > o1.top) && (o0.top < o1.bottom))
 }
 
 export function randInt(min, max) {

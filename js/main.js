@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: main.js
- * Description: The core script that makes the game tick. Handles everything between UI, enemies, and utilizing the other modules.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -57,6 +49,7 @@ let rank = "Fail"
 let pointsStatic = 0
 let hpStatic = 0
 let enemiesDefeated = 0
+let displayingResults = false
 
 // END
 
@@ -145,8 +138,10 @@ new Animator("clearout", "tween", 250, undefined, {obj: clearText, prop: {x: -10
 new Animator("blackin", "tween", 500, undefined, {obj: blackTrans, prop: {val: 0}})
 new Animator("blackout", "tween", 500, undefined, {obj: blackTrans, prop: {val: 1}})
 
-function determinePoints() { // determines number of points (intended to be used after round, survival only)
-    return ((Math.floor((hpStatic / defHP) * 100) * 2) - clamp((completionTime - 150), 0, completionTime)) // consider health and time
+function determinePoints() { // determines number of points (intended to be used after round, survival only), max is 200 points, min is 1 point
+    if (hpStatic <= 0) return 0 // Force 0 if player is dead, no point calculating
+
+    return Math.floor(clamp((((hpStatic / defHP) * 100 * 2) - clamp((completionTime - 180), -completionTime, completionTime)), 1, 200)) // consider health and time
 }
 
 function determineRank(points = pointsStatic) { // determines rank from points (intended for survival use only)
@@ -169,10 +164,13 @@ function determineRank(points = pointsStatic) { // determines rank from points (
 }
 
 function results() {
+    if (displayingResults) return // Don't run more than what is necessary
+
+    displayingResults = true
     clearText.visible = false
     Animators.blackin.play()
 
-    completionTime = ((NOW - timeStarted) / 1000) // time in seconds
+    completionTime = Math.floor(((NOW - timeStarted) / 1000)) // time in seconds
 
     hpStatic = P1.hp
 
@@ -180,6 +178,8 @@ function results() {
 
     pointsStatic = determinePoints()
     rank = determineRank()
+
+    console.log(`Results: Rank: ${rank} Points: ${pointsStatic} Pts. HP: ${hpStatic} Enemies Defeated: ${enemiesDefeated} Time: ${completionTime}`)
 
     if (enemiesDefeated > profile.best.enemies || (pointsStatic > profile.best.points)) { // save data if results are better than the best
         profile.best.enemies = enemiesDefeated
@@ -337,11 +337,10 @@ function update() {
 
         if (gamePlaying) {
             // Handle hitboxes
-            let prev
             let fakeHitboxes = cloneArray(Hitboxes)
             for (const h of fakeHitboxes) {
                 for (const a of Fighters) {
-                    if (a.hp > 0) {
+                    if (a.alive) {
                         const col = h.check(a)
 
                         if (col) {
@@ -353,21 +352,20 @@ function update() {
                     }
                 }
 
-                // fix this prev
-                if (prev && (prev.type == h.type) && h.check(prev)) {
-                    h.remove()
-                    prev.remove()
+                if (h.type == "fireball") {
+                    Hitboxes.forEach(h1 => {
+                        if (h1 != h && ((h1.type == h.type) && h.check(h1))) {
+                            h.remove()
+                            h1.remove()
+                        }
+                    })
                 }
-
-                prev = h
-
+                
                 h.update()
             }
             fakeHitboxes = null
-            prev = null
         }
         
-
         // Handle P1 health bar and icon
 
         img(ImageMemory["plricon.png"], 0, 0, 32, 32, 35, 25, 64, 64) 
@@ -424,15 +422,15 @@ function update() {
                     if (!f.plr && f.alive) f.remove()
                 }
             }
+            else {
+                setTimeout(results, 3000)
+            }
         }
 
         if (DEBUG) {
             CTX.fillStyle = "red"
             CTX.font = "20px Humming"
 
-            const fps = Math.round((TIME_PASSED / MS_PER_FRAME) * FPS)
-            text("debug mode", 20, 40, 200)
-            text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80, 150)
             text(`state: ${P1.state}`, 20, 120, 150)
             text(`x: ${Math.round(P1.left)} (v: ${Math.round(P1.velocity.x)}), y: ${Math.round(P1.top)} (v: ${Math.round(P1.velocity.y)})`, 20, 160, 300)
             text(`grounded: ${P1.grounded}`, 20, 200, 150)
@@ -496,12 +494,12 @@ function update() {
                 img(ImageMemory["scoreboxlarge.png"], 0, 0, 128, 38, (cenX + 115), (cenY - 160), 450, 128)
 
                 // score
-                let strPoints = strToUINum(pointsStatic)
+                let strDefeated = strToUINum(enemiesDefeated)
 
                 // draw image numbers
-                for (let i = 0; (i < 3); i++) img(ImageMemory[`score${strPoints[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 110) + (80 * i)), (cenY - 140), 96, 96)
+                for (let i = 0; (i < 3); i++) img(ImageMemory[`score${strDefeated[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 110) + (80 * i)), (cenY - 140), 96, 96)
 
-                strPoints = null
+                strDefeated = null
 
                 CTX.font = "38px Humming"
                 CTX.fillStyle = "black"
@@ -514,7 +512,7 @@ function update() {
                 img(ImageMemory["scoreboxlong.png"], 0, 0, 128, 22, (cenX + 115), (cenY + 125), 450, 75)
 
                 // best
-                let strBest = strToUINum(profile.best.points)
+                let strBest = strToUINum(profile.best.enemies)
 
                 // draw image numbers
                 for (let i = 0; (i < 3); i++) img(ImageMemory[`score${strBest[i]}.png`], 0, 0, 32, 32, ((cenX + 185) + (55 * i)), (cenY + 132), 64, 64)
@@ -554,11 +552,6 @@ function update() {
 
                 let strMins = strToUINum(minutes, 2)
                 let strSecs = strToUINum(seconds, 2)
-
-                console.log(minutes)
-                console.log(strMins)
-                console.log(seconds)
-                console.log(strSecs)
 
                 // draw image numbers
                 for (let i = 0; (i < 2); i++) img(ImageMemory[`score${strMins[i] || 0}.png`], 0, 0, 32, 32, ((cenX + 320) + (40 * i)), (cenY - 135), 48, 48)
@@ -600,6 +593,16 @@ function update() {
         CTX.fillStyle = `rgba(0, 0, 0, ${(1 - blackTrans.val)})`
         CTX.fillRect(0, 0, w, h)
     } 
+
+    if (DEBUG) {
+        CTX.textAlign = "left"
+        CTX.fillStyle = "red"
+        CTX.font = "20px Humming"
+
+        const fps = Math.round((TIME_PASSED / MS_PER_FRAME) * FPS)
+        text("debug mode", 20, 40, 200)
+        text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80, 150)
+    }
 }
 update()
 
