@@ -186,7 +186,7 @@ function results() {
         profile.best.points = pointsStatic
         profile.best.rank = rank
 
-        saveData()
+        saveData(profile)
     } 
 
     setTimeout(function() { // wait until blackin is done

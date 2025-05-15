@@ -14,9 +14,10 @@ const key = "PhotoDojoJS"
 export let profile = loadData() || defProfile
 export let loaded = false
 
-export function saveData() {
+export function saveData(newProfile) {
     if (profile.best > 0 && loaded) {
-        localStorage.setItem(key, JSON.stringify(profile))
+        localStorage.setItem(key, JSON.stringify(newProfile))
+        profile = newProfile
     }
 }
 
