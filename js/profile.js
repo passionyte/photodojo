@@ -15,7 +15,7 @@ export let profile = loadData() || defProfile
 export let loaded = false
 
 export function saveData(newProfile) {
-    if (profile.best > 0 && loaded) {
+    if (newProfile.best > 0 && loaded) {
         localStorage.setItem(key, JSON.stringify(newProfile))
         profile = newProfile
     }
