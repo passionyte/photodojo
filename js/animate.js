@@ -1,4 +1,13 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: animate.js
+ * Description: Handles UI 'Animator' classes and 'Timer' classes.
+ *
+ * Author: Logan
+ */
+
 'use strict'
 
 export const Animators = {}

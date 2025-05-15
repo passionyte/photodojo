@@ -1,4 +1,13 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: fighter.js
+ * Description: Handles the 'Fighter' and 'Hitbox' class, integral to the gameplay.
+ *
+ * Author: Logan
+ */
+
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, collisionFighter, clamp } from "./globals.js"
@@ -6,7 +15,7 @@ import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer } from "./animate.js"
 import { newImage } from "./images.js"
 
-export const defHP = 30
+export const defHP = 40
 export const stateBounds = {
     stance: { x: 876, y: 476, w: 137, h: 258 },
     jump: { x: 354, y: 1102, w: 110, h: 269, offset: { x: 27, y: 0 } },
@@ -42,6 +51,7 @@ export class Hitbox extends Object {
     creator // don't hit this guy
     ignoreBoundaries // ignore left and right boundaries
     type // easy identification
+    hits = [] // contains things ('Fighter' or 'Hitbox')s the hitbox has already hit 
 
     img // for stuff like the Fireball wooooooshhh, (no not the subreddit)
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
@@ -51,13 +61,20 @@ export class Hitbox extends Object {
     }
 
     check(hit) {
+        if (this.hits.includes(hit)) return
+
         const isntPlr = (hit.dmg)
         const teamCheck = (this.creator.plr == hit.plr || (isntPlr && this.creator.plr == hit.creator.plr))
 
         if (isntPlr || !teamCheck) {
             if (hit != this.creator) {
                 if (isntPlr || (!hit.t.stun.active && !hit.fallen && !(hit.state == "crouch" && this.type == "fireball"))) {
-                    return collision(this, hit)
+                    const col = collision(this, hit)
+
+                    if (col) {
+                        this.hits.push(hit)
+                        return true
+                    }
                 }
             }
         }

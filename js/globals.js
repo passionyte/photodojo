@@ -1,9 +1,18 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: globals.js
+ * Description: Global references used by other scripts, contains 'Object' class.
+ *
+ * Author: Logan
+ */
+
 'use strict'
 
 import { initialLeft, initialRight } from "./main.js"
 
-export const DEBUG = true
+export const DEBUG = false
 
 export function d(id) {
     return document.getElementById(id)
@@ -105,6 +114,10 @@ export function cloneArray(a) {
 
     return result
 }
+
+// shortcut functions
+export function img(i, sx, sy, sw, sh, dx, dy, dw, dh) { CTX.drawImage(i, sx, sy, sw, sh, dx, dy, dw, dh) }
+export function text(t, x, y, w) { CTX.fillText(t, x, y, w) }
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {

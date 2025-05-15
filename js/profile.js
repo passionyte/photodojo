@@ -1,3 +1,15 @@
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: profile.js
+ * Description: Handles saving and loading player profiles.
+ *
+ * Author: Logan
+ */
+
+'use strict'
+
 export const defProfile = {
     best: {
         points: 0,
@@ -6,7 +18,7 @@ export const defProfile = {
     }
 }
 
-const key = "PhotoDojo"
+const key = "PhotoDojoJS"
 export let profile = loadData() || defProfile
 export let loaded = false
 

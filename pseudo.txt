@@ -4,6 +4,10 @@ Then there's a menu screen where player chooses between versus (2 players) or si
 
 Then the player chooses their Photo Dojo character! (or go back and create one because the menu is locked... but I don't know how feasible that is)
 
+Object oriented programming will be used amass in this game, for anything interacting on the 2D field (what I like to call the 'Object' class)
+For instance, Fighters and Hitboxes (like my Dino game) will inherit from this 'Object' class.
+I will take advantage of using classes to reduce code length and increase efficiency when possible.
+
 FIGHTER MOVES
 
 Walking - self explanatory
