@@ -25,10 +25,10 @@ export function loadData() {
     const s = localStorage.getItem(key)
 
     if (s) {
-        loaded = true
-
         return JSON.parse(s)
     }
+
+    loaded = true
 }
 
 export default { profile }
