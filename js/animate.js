@@ -93,7 +93,7 @@ export class Animator {
             }
 
             this.ended = true
-            if (this.callback) this.callback(true)
+            if (this.callback && !force) this.callback(true)
         }, ((!force) && this.clearTime) || 1)
     }
 

@@ -4,7 +4,7 @@
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp, img } from "./globals.js"
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
-import { Timer } from "./animate.js"
+import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
 
 export const defHP = 40
@@ -412,6 +412,13 @@ export class Fighter extends Object {
                 if (MODE == 1) { // Make enemies fall through the floor
                     this.ignoreGravity = true
                     globalThis.enemiesRemaining--
+                    
+                    if (globalThis.enemiesRemaining % 10 == 0 || globalThis.enemiesRemaining % 100 == 0) {
+                        Animators.remaininggrow.play()
+                    }
+                    else {
+                        Animators.remainingsinglegrow.play()
+                    }
 
                     setTimeout(() => { // remove them to free up memory after a sec
                         this.remove()

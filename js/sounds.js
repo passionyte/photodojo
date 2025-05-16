@@ -29,11 +29,30 @@ export function playSound(src, n) {
     }
 }
 
+export function stopSound(src) {
+    if (typeof(src) != "string") {
+        src.pause()
+        src.currentTime = 0
+    }
+    else {
+        const s = SoundMemory[src]
+
+        if (s) {
+            s.pause()
+            s.currentTime = 0
+        }
+    }
+}
+
 // preload definitions
 
 newSound(true, "go.wav")
 newSound(true, "ready.wav")
 newSound(true, "100enemies.wav")
 newSound(true, "mode.wav")
+newSound(true, "title.mp3", undefined, true)
+newSound(true, "victory.mp3")
+newSound(true, "loading.wav", undefined, true)
+newSound(true, "loadingcomplete.wav")
 
 export default { SoundMemory }
