@@ -87,8 +87,11 @@ export class Animator {
                 this.times = -1
             }
             else if (this.type == "tween") {
+                for (let p in this.properties) this.object[p] = this.properties[p]
+
                 this.start = -1
                 this.time = 0
+
                 this.startProps = {}
             }
 

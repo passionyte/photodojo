@@ -168,7 +168,7 @@ new Animator("remainingsinglegrow", "tween", 100, 1, { obj: eRemaining, prop: { 
 new Animator("remaininggrow", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1.1, size1: 1.1, size2: 1.1}}, function() { Animators.remainingshrink.play() })
 new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: { size2: 1 } })
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
-new Animator("loading", "frame", 1000, 1, { goal: 8 })
+new Animator("loading", "frame", 1000, 1, { goal: 7 })
 
 function determinePoints() { // determines number of points (intended to be used after round, survival only), max is 200 points, min is 1 point
     if (hpStatic <= 0) return 0 // Force 0 if player is dead, no point calculating
