@@ -29,13 +29,13 @@ export class Animator {
     tick() {
         if (!this.playing) return
 
-        if (this.type.includes("frame")) {
+        if (this.type.includes("frame")) { // goes from 0 - a goal number of ticks within a set time frame
             this.times++
             if (this.type == "flashframe") this.flashing = (!this.flashing)
     
             if (this.times >= this.timesGoal) this.stop()
         }
-        else if (this.type == "tween") {
+        else if (this.type == "tween") { // tweens properties of a object from point A to B
             this.time = (performance.now() - this.start)
 
             for (let p in this.properties) {
@@ -69,7 +69,7 @@ export class Animator {
         if (this.type == "tween") {
             this.start = performance.now()
 
-            for (let p in this.properties) {
+            for (let p in this.properties) { // Log our starting properties so we can properly tween from them
                 if (!this.startProps[p]) this.startProps[p] = this.object[p]
             }
         }
@@ -80,7 +80,7 @@ export class Animator {
     stop(force) {
         this.playing = false
 
-        setTimeout(() => {
+        setTimeout(() => { // Reset everything we need to
             if (this.interval) clearInterval(this.interval)
 
             if (this.type.includes("frame")) {
@@ -88,8 +88,6 @@ export class Animator {
             }
             else if (this.type == "tween") {
                 this.start = -1
-                this.object = null
-                this.properties = null
                 this.time = 0
                 this.startProps = {}
             }

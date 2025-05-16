@@ -2,7 +2,7 @@
 
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp } from "./globals.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp, img } from "./globals.js"
 import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer } from "./animate.js"
 import { newImage } from "./images.js"
@@ -26,15 +26,15 @@ const FireballBounds = {
     h: 220,
 }
 
-export const Fighters = []
-export const Hitboxes = []
-
 const FighterTimers = { // What timers to create + duration
     attack: 0,
     stun: 0,
     shoot: 500,
     lag: 0
 }
+
+export const Fighters = []
+export const Hitboxes = []
 
 export class Hitbox extends Object {
     dmg // damage applied to player
@@ -75,7 +75,7 @@ export class Hitbox extends Object {
     }
 
     update() {
-        const posCheck = (!this.ignoreBoundaries && (this.right + (initialLeft - globalThis.leftConstraint) > w || this.left + (initialLeft - globalThis.leftConstraint) < 0))
+        const posCheck = (!this.ignoreBoundaries && (this.right + (initialLeft - leftConstraint) > w || this.absLeft) < 0)
         const timeCheck = (this.life && ((performance.now() - this.created) >= (this.life)))
 
         if (posCheck || timeCheck) { // destroy hitbox
@@ -89,7 +89,7 @@ export class Hitbox extends Object {
 
     draw() {
         const i = this.img
-        if (i) CTX.drawImage(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.left + (initialLeft - globalThis.leftConstraint), this.top, this.width, this.height)
+        if (i) img(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.absLeft, this.top, this.width, this.height)
             
         if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)")
     }
@@ -135,6 +135,7 @@ export class Fighter extends Object {
 
     img
     bounds // derived from state in stateBounds
+    shadow // shadow image under Fighter's feet
 
     get t () { // for convenience
         return this.timers
@@ -146,6 +147,10 @@ export class Fighter extends Object {
 
     get canAttack() {
         return (!this.t.attack.active && !this.t.stun.active && !this.t.lag.active && this.alive && !this.fallen)
+    }
+
+    get lefty() {
+        return (this.facing == "left")
     }
 
     remove() {
@@ -278,10 +283,8 @@ export class Fighter extends Object {
             if (!sTimer.active && this.alive) {
                 this.state = "shoot"
 
-                const lefty = (this.facing == "left")
-
-                const x = ((!lefty) && (this.right + 20)) || (this.left - 120)
-                new Hitbox(x, this.top, ((lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.jpg", FireballBounds, true)
+                const x = ((!this.lefty) && (this.right + 20)) || (this.left - 120)
+                new Hitbox(x, this.top, ((this.lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.jpg", FireballBounds, true)
             }
         }
 
@@ -313,22 +316,27 @@ export class Fighter extends Object {
             }
         }
 
+        // shadow
+        if (this.grounded) {
+            img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16)), this.bottom, this.width, 18)
+        }
+
         if (!this.fallen) {
             const w = this.bounds.w
             const h = this.bounds.h
 
-            if (this.facing == "left") { // flip our player around
+            if (this.lefty) { // flip our player around
                 const cenX = (w / 2)
                 const cenY = (h / 2)
 
                 CTX.save()
-                CTX.translate((this.gLeft + cenX), (this.top + cenY))
+                CTX.translate((this.absLeft + cenX), (this.top + cenY))
                 CTX.scale(-1, 1)
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, -cenX, -cenY, w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
+                img(this.img, this.bounds.x, this.bounds.y, w, h, -cenX, -cenY, w, h) // TODO: add fixed lefty offsets for x (specifically, -(w / 2))
                 CTX.restore()
             }
             else {
-                CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, this.gLeft, this.top, w, h)
+                img(this.img, this.bounds.x, this.bounds.y, w, h, this.absLeft, this.top, w, h)
             }
         }
         else {
@@ -339,14 +347,13 @@ export class Fighter extends Object {
             const cenY = (h / 2)
 
             // Center a pivot point for rotation
-            const pivotX = (this.gLeft + cenX)
+            const pivotX = (this.absLeft + cenX)
             const pivotY = (this.top + cenY)
 
             CTX.save()
             CTX.translate(pivotX, pivotY)
 
-            const lefty = (this.facing == "left")
-            if (lefty) { // Rotate clockwise
+            if (this.lefty) { // Rotate clockwise
                 CTX.rotate(Math.PI / 2) // Rotate clockwise for left-facing fighters
                 CTX.translate(-cenX, -cenY)
                 CTX.scale(-1, 1) // Flip horizontally
@@ -356,7 +363,7 @@ export class Fighter extends Object {
                 CTX.translate(-cenX, -cenY)
             }
 
-            CTX.drawImage(this.img, this.bounds.x, this.bounds.y, w, h, ((lefty) && -195) || -55, 0, w, h)
+            img(this.img, this.bounds.x, this.bounds.y, w, h, ((this.lefty) && -195) || -55, 0, w, h)
             CTX.restore()
         }
         if (DEBUG) super.draw(!this.plr && "rgba(100, 100, 100, 0.5)")
@@ -370,7 +377,7 @@ export class Fighter extends Object {
     }
 
     onDamage(dmg) { // Ouch! we are taking damage
-        this.velocity.x = ((((this.facing == "left") && 1) || -1) * dmg) // Damage-based knockback
+        this.velocity.x = ((((this.lefty) && 1) || -1) * dmg) // Damage-based knockback
         this.marchLock = true // Stop us from moving
 
         const aTimer = this.t.attack
@@ -425,10 +432,9 @@ export class Fighter extends Object {
 
             this.t.attack.start(200)
 
-            const lefty = (this.facing == "left")
-            this.velocity.x = ((lefty) && -2) || 2
+            this.velocity.x = ((this.lefty) && -2) || 2
 
-            const x = ((!lefty) && (this.right + 40)) || (this.left - 60)
+            const x = ((!this.lefty) && (this.right + 40)) || (this.left - 60)
             new Hitbox(x, (this.top + 25), 0, 0, 64, 32, "punch", this, 3, 200)
         }
     }
@@ -442,7 +448,7 @@ export class Fighter extends Object {
 
             if (this.grounded) this.velocity.x = 0
 
-            const x = ((this.facing != "left") && this.right) || (this.left - 18)
+            const x = ((!this.lefty) && this.right) || (this.left - 18)
             new Hitbox(x, (this.top + 125), 0, 0, 70, 70, "kick", this, 4, 300)
         }
     }
@@ -477,6 +483,7 @@ export class Fighter extends Object {
         this.name = name
         this.plr = plr
         this.img = newImage(`${name}.jpg`)
+        this.shadow = newImage("shadow.png")
         this.bounds = bounds
         this.facing = facing
 

@@ -22,6 +22,11 @@ export const CTX = CANVAS.getContext("2d")
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
 
+export const Live = (document.URL.includes("passionyte.github.io"))
+if (!Live) document.title = `[DEV] ${document.title}`
+
+export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
+
 // Some convenient keyboard codes
 export const KEYS = {
     SPACE:32,
@@ -34,7 +39,7 @@ export const KEYS = {
     S:83,
     D:68,
     P:80
-   };
+}
    
 // What each set of keyboard codes 'does'
 export const keyClasses = {
@@ -77,9 +82,12 @@ export function cloneArray(a) {
     return result
 }
 
-// shortcut functions
+// Shortcut/Helper functions
 export function img(i, sx, sy, sw, sh, dx, dy, dw, dh) { CTX.drawImage(i, sx, sy, sw, sh, dx, dy, dw, dh) }
 export function text(t, x, y, w) { CTX.fillText(t, x, y, w) }
+export function font(str) { CTX.font = str }
+export function frect(x, y, w, h) { CTX.fillRect(x, y, w, h) }
+export function fstyle(str) { CTX.fillStyle = str }
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {
@@ -117,7 +125,7 @@ export class Object { // The base for anything *scripted* that will appear on th
         return (this.position.x + this.offset.x)
     }
 
-    get gLeft() {
+    get absLeft() {
         return this.left + (initialLeft - globalThis.leftConstraint)
     }
 
@@ -125,7 +133,7 @@ export class Object { // The base for anything *scripted* that will appear on th
         return (this.left + this.width)
     }
 
-    get gRight() {
+    get absRight() {
         return (this.right) + (initialRight - globalThis.rightConstraint) 
     }
 

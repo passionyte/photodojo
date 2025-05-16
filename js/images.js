@@ -2,16 +2,18 @@
 
 'use strict'
 
+import { URL } from "./globals.js"
+
 export const ImageMemory = {}
 
 export function newImage(n) {
-    let i = ImageMemory[n]
+    let i = ImageMemory[n] // if already created, return the image, no point in creating duplicates like in sounds
     if (i) return i
 
     i = new Image()
-    i.src = `../imgs/${n}`
+    i.src = (URL + "imgs/") + n || "template.jpg" // ensure the image can be found
 
-    ImageMemory[n] = i
+    ImageMemory[n] = i // log to memory
 
     return i
 }
