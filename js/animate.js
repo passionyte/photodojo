@@ -26,37 +26,37 @@ export class Animator {
     time
     startProps = {}
 
-    tick() {
+    tick() { // per each 'tick' of the animator
         if (!this.playing) return
 
         if (this.type.includes("frame")) { // goes from 0 - a goal number of ticks within a set time frame
             this.times++
             if (this.type == "flashframe") this.flashing = (!this.flashing)
     
-            if (this.times >= this.timesGoal) this.stop()
+            if (this.times >= this.timesGoal) this.stop() // reached our goal, end
         }
         else if (this.type == "tween") { // tweens properties of a object from point A to B
             this.time = (performance.now() - this.start)
 
             for (let p in this.properties) {
-                const div = (this.duration / this.time)
+                const div = (this.duration / this.time) // get the divisor for the tween based on the current time/progress and the duration of the tween
                 let v
 
-                if (this.properties[p] < this.startProps[p]) {
+                if (this.properties[p] < this.startProps[p]) { // tween down
                     v = ((this.properties[p] + this.startProps[p]) - (this.startProps[p] / div))
                 }
-                else {
+                else { // tween up
                     v = (this.startProps[p] + (this.properties[p] / div))
                 }
 
                 this.object[p] = v
             }
 
-            if (this.time >= this.duration) this.stop()
+            if (this.time >= this.duration) this.stop() // reached our goal, end
         }
     }
 
-    play(customInt) {
+    play(customInt) { // start the animator
         if (this.playing) return
 
         this.playing = true
@@ -64,7 +64,7 @@ export class Animator {
 
         let dur = customInt
 
-        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((this.type == "tween") && 1) || this.duration
+        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((this.type == "tween") && 1) || this.duration // determine the duration of the interval
 
         if (this.type == "tween") {
             this.start = performance.now()
@@ -77,7 +77,7 @@ export class Animator {
         this.interval = setInterval(this.tick.bind(this), dur)
     }
 
-    stop(force) {
+    stop(force) { // (forcibly*) stop the animator
         this.playing = false
 
         setTimeout(() => { // Reset everything we need to
@@ -87,7 +87,7 @@ export class Animator {
                 this.times = -1
             }
             else if (this.type == "tween") {
-                for (let p in this.properties) this.object[p] = this.properties[p]
+                for (let p in this.properties) this.object[p] = this.properties[p] // ensure the object is set to the final property value in case it is under or over
 
                 this.start = -1
                 this.time = 0
@@ -96,7 +96,7 @@ export class Animator {
             }
 
             this.ended = true
-            if (this.callback && !force) this.callback(true)
+            if (this.callback && !force) this.callback(true) // run the callback if we ended naturally
         }, ((!force) && this.clearTime) || 1)
     }
 
@@ -114,6 +114,7 @@ export class Animator {
 
         this.callback = cb
 
+        // set necessary properties based on type
         if (this.type.includes("frame")) {
             this.timesGoal = dat.goal
             this.times = -1
@@ -125,6 +126,7 @@ export class Animator {
             this.object = dat.obj
         } 
 
+        // bind the functions to the class (fixes a ref error)
         this.tick = this.tick.bind(this)
         this.stop = this.stop.bind(this)
 
@@ -138,18 +140,18 @@ export class Timer { // Used for Fighter class primarily; can be used for other 
     began = 0 // time when timer began
     duration = 0 // duration of timer (in ms)
 
-    check() {
+    check() { // if the timer is active and the duration has passed, return true
         return (this.active && ((performance.now() - this.began) > this.duration))
     }
 
-    start(d) {
+    start(d) { // begin the timer
         this.active = true
         this.began = performance.now()
 
         if (d) this.duration = d
     }
 
-    stop() {
+    stop() { // stop the timer
         this.active = false
     }
 

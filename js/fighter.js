@@ -7,8 +7,8 @@ import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
 import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
 
-export const defHP = 40
-export const stateBounds = {
+export const defHP = 40 // default HP for fighters
+export const stateBounds = { // image boundaries for each state
     stance: { x: 876, y: 476, w: 137, h: 258 },
     jump: { x: 354, y: 1102, w: 110, h: 269, offset: { x: 27, y: 0 } },
     march: { x: 76, y: 791, w: 157, h: 261 },
@@ -19,7 +19,7 @@ export const stateBounds = {
     shoot: { x: 813, y: 820, w: 214, h: 233, offset: { x: 0, y: 28 } }
 }
 
-const FireballBounds = {
+const FireballBounds = { // image boundaries for the fireball
     x: 331,
     y: 496,
     w: 220,
@@ -53,14 +53,14 @@ export class Hitbox extends Object {
     }
 
     check(hit) {
-        if (this.hits.includes(hit)) return
+        if (this.hits.includes(hit)) return // already hit this object
 
-        const isntPlr = (hit.dmg)
-        const teamCheck = (this.creator.plr == hit.plr || (isntPlr && (this.creator.plr == hit.creator.plr)))
+        const isntFighter = (hit.dmg)
+        const teamCheck = (this.creator.plr == hit.plr || (isntFighter && (this.creator.plr == hit.creator.plr))) // hit someone not on the same team
 
         if (!teamCheck) {
-            if (hit != this.creator) {
-                if (isntPlr || (!hit.t.stun.active && !hit.fallen && !(hit.state == "crouch" && this.type == "fireball"))) {
+            if (hit != this.creator) { // hit isn't the creator of this hitbox
+                if (isntFighter || (!hit.t.stun.active && !hit.fallen && !(hit.state == "crouch" && this.type == "fireball"))) { // check various conditions if it's a fighter or not
                     const col = collision(this, hit)
 
                     if (col) {
@@ -75,8 +75,8 @@ export class Hitbox extends Object {
     }
 
     update() {
-        const posCheck = (!this.ignoreBoundaries && (this.right + (initialLeft - leftConstraint) > w || this.absLeft) < 0)
-        const timeCheck = (this.life && ((performance.now() - this.created) >= (this.life)))
+        const posCheck = (!this.ignoreBoundaries && (this.right + (initialLeft - leftConstraint) > w || this.absLeft) < 0) // check if the hitbox is off-screen, assuming we aren't ignoring boundaries
+        const timeCheck = (this.life && ((performance.now() - this.created) >= (this.life))) // check if the hitbox has lived long enough
 
         if (posCheck || timeCheck) { // destroy hitbox
             this.remove()
@@ -91,7 +91,7 @@ export class Hitbox extends Object {
         const i = this.img
         if (i) img(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.absLeft, this.top, this.width, this.height)
             
-        if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)")
+        if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)") // draw the hitbox if in debug mode
     }
 
     constructor(x, y, xv, yv, w, h, t, c, d, l, i, b, ib = false) { // a hitbox must always have the supers, damage and a id (determined by script)
@@ -145,7 +145,7 @@ export class Fighter extends Object {
         return (this.hp > 0)
     }
 
-    get canAttack() {
+    get canAttack() { // check a multitutde of things to see if the fighter can attack
         return (!this.t.attack.active && !this.t.stun.active && !this.t.lag.active && this.alive && !this.fallen)
     }
 
@@ -162,7 +162,7 @@ export class Fighter extends Object {
         let crouchDesired = false
         let xv = 0
 
-        if (this.plr) {
+        if (this.plr) { // derive this only from a fighter that is a player
             crouchDesired = ((isKeyFromClassDown("crouch")))
             xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
         }
@@ -175,7 +175,7 @@ export class Fighter extends Object {
 
     update() {
         this.bounds = stateBounds[this.state]
-        if (this.bounds.offset) {
+        if (this.bounds.offset) { // if the bounds have an offset, use it
             this.offset = this.bounds.offset
         }
         else {
@@ -199,11 +199,11 @@ export class Fighter extends Object {
         if (this.velocity.y != 0) { // y-velocity handling
             let diff = (this.position.y += this.velocity.y)
 
-            if (diff > floorPos && !this.ignoreGravity) {
+            if (diff > floorPos && !this.ignoreGravity) { // cancel fall
                 this.position.y = floorPos
                 this.velocity.y = 0
             }
-            else {
+            else { // continue falling
                 this.position.y = diff
             }
         }
@@ -243,14 +243,9 @@ export class Fighter extends Object {
                     this.position.y = diff
                 }
             }
-            else { // on ground
+            else { // on ground, determine if fighter is marching
                 if (!this.marchLock && this.state != "hurt") {
-                    if (this.velocity.x == 0) {
-                        this.state = "stance"
-                    }
-                    else {
-                        this.state = "march"
-                    }
+                    this.state = ((this.velocity.x == 0) && "stance") || "march"
                 }
             }
 
@@ -268,7 +263,7 @@ export class Fighter extends Object {
         if (sTimer.check()) { // unstun/fall fighter
             sTimer.stop()
 
-            if (this.alive) {
+            if (this.alive) { // are we alive?
                 this.setBaseState()
                 if (this.fallen) this.fallen = false
                 this.position.y = floorPos
@@ -280,7 +275,7 @@ export class Fighter extends Object {
         if (sHTimer.check()) { // shoot fireball!
             sHTimer.stop()
 
-            if (!sTimer.active && this.alive) {
+            if (!sTimer.active && this.alive) { // make sure we are able to shoot.. don't use canAttack
                 this.state = "shoot"
 
                 const x = ((!this.lefty) && (this.right + 20)) || (this.left - 120)
@@ -300,28 +295,26 @@ export class Fighter extends Object {
             this.bounds = stateBounds.stance
             const NOW = performance.now()
 
-            if (!this.lastStep) {
+            if (!this.lastStep) { // exception for first step
                 this.lastStep = NOW
             }
             else {
                 const delta = (NOW - this.lastStep)
 
-                if (delta > 150) {
+                if (delta > 150) { // take 'step'
                     this.bounds = stateBounds.march
 
-                    if (delta > 300) {
+                    if (delta > 300) { // reset lastStep
                         this.lastStep = NOW
                     }
                 }
             }
         }
 
-        // shadow
-        if (this.grounded) {
-            img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16)), this.bottom, this.width, 18)
-        }
+        // simple shadow
+        if (this.grounded) img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16)), this.bottom, this.width, 18)
 
-        if (!this.fallen) {
+        if (!this.fallen) { // fighter is standing
             const w = this.bounds.w
             const h = this.bounds.h
 
@@ -339,7 +332,7 @@ export class Fighter extends Object {
                 img(this.img, this.bounds.x, this.bounds.y, w, h, this.absLeft, this.top, w, h)
             }
         }
-        else {
+        else { // fighter has fallen
             const w = this.bounds.w
             const h = this.bounds.h
 
@@ -425,8 +418,8 @@ export class Fighter extends Object {
                     }, 1000)
                 }
             }
-            else {
-                this.bounces = 5
+            else { // set bounces naturally
+                this.bounces = 3
             }
         }
 
