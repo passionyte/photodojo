@@ -38,3 +38,15 @@ MULTIPLAYER | VERSUS MODE
 Two players can play in this mode! One uses WASD and R, the other uses IJKL and P.
 Essentially a classic street fighter battle, whoever defeats the other wins!
 All moves are available; leading to a chaotic but fun match
+
+CONTROLLERS
+
+Take in a bunch of keycodes, bind them to actions... for anything... under a keyclass/type
+
+Bind Class
+
+binds -> Bind { 
+                type = "jump" 
+                key = # 
+                action = function (or undefined)
+            }

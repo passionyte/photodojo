@@ -3,14 +3,14 @@
 'use strict'
 
 import {
-    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp,
-    keyClasses, FLOOR, randInt, cloneArray, KEYS, img, text, frect, font, fstyle
+    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators } from "./animate.js"
 import { profile, saveData } from "./profile.js"
 import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
+import { KEYS } from "./controller.js"
 
 let NOW = performance.now()
 let frame_time = NOW
@@ -21,6 +21,8 @@ let gamePlaying = false
 let menu = "loading"
 let nextMenu = "title"
 let loadingComplete = false
+let P1
+let P2
 
 // Boundary Variables
 export const initialLeft = 0
@@ -71,86 +73,31 @@ let displayingResults = false
 let bg0x = 0
 let bg1x = w
 
-let P1
-
-// Input Manager
-const downKeys = {}
+// Menu Input Handler
 
 // Event Listeners
 document.addEventListener("keydown", keypress)
-document.addEventListener("keyup", keyup)
 
-export function isKeyFromClassDown(c) {
-    let result = false
-
-    const cl = keyClasses[c]
-    for (const k of cl) {
-        if (downKeys[k]) {
-            result = true
-            break
-        }
-    }
-
-    return result
-}
-
-/**
-* The user pressed a key on the keyboard
-*/
 function keypress(event) {
     const key = event.keyCode
-    if (downKeys[key]) return
 
-    downKeys[key] = true
+    if (key == KEYS.SPACE) {
+        if (menu == "title") {
+            stopSound("title.mp3")
+            playSound("mode.wav")
 
-    if (gamePlaying && P1) {
-        if (keyClasses.jump.includes(key)) { // TODO: should be a 'controller' class maybe
-            P1.jump()
-        }
-        else if (keyClasses.action.includes(key)) {
-            if (isKeyFromClassDown(P1.facing)) {
-                P1.punch()
-            }
-            else if ((P1.velocity.x == 0 || !P1.grounded) && P1.state != "crouch") {
-                P1.kick()
-            }
-            else if (P1.state != "crouch") {
-                P1.fireball()
-            }
-            else { // special move
+            menu = "loading"
+            nextMenu = null
 
-            }
+            setTimeout(function() {
+                loadingComplete = true
+                initializeGame(500)
+            }, 2000)
+
+            blackTrans.val = 0
+            Animators.blackout.play()
         }
     }
-    else {
-        if (key == KEYS.SPACE) {
-            if (menu == "title") {
-                stopSound("title.mp3")
-                playSound("mode.wav")
-
-                menu = "loading"
-                nextMenu = null
-
-                setTimeout(function() {
-                    loadingComplete = true
-                    initializeGame(500)
-                }, 2000)
-
-                blackTrans.val = 0
-                Animators.blackout.play()
-            }
-        }
-    }
-}
-
-/**
-* The user released a key on the keyboard
-*/
-function keyup(event) {
-    const key = event.keyCode
-    if (!downKeys[key]) return
-
-    downKeys[key] = null
 }
 
 // UI Animators
@@ -266,14 +213,25 @@ function singlePlayerIntro(cb) {
     }
 }
 
-function initializeGame(delay) {
-    P1 = new Fighter(cenX, (FLOOR - 258), 1)
+function versusIntro() {
+    playSound("ready.wav")
+    Animators.ready.play()
 
+    setTimeout(function () {
+        playSound("go.wav")
+        gamePlaying = true
+        Animators.attack.play()
+    }, 1050)
+}
+
+function initializeGame(delay) {
     // (re)set some game variables
     bg0x = 0
     bg1x = w
 
     if (MODE == 1) { // singleplayer
+        P1 = new Fighter(cenX, (FLOOR - 258), 1)
+
         distSinceLastGuy = 0
         lastGuySpawned = 0
         globalThis.enemiesRemaining = 100
@@ -284,7 +242,10 @@ function initializeGame(delay) {
         }, delay || 1)
     }
     else {
+        P1 = new Fighter(100, (FLOOR - 258), 1)
+        P2 = new Fighter((w - 250), (FLOOR - 258), 2, "left")
 
+        versusIntro()   
     }
 }
 
@@ -373,7 +334,7 @@ function update() {
                                 movement = 4
                                 if (Math.random() < 0.008) a.punch()
                             }
-                        }
+                        }100
 
                         if (movement && (a.alive && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
                     }
@@ -414,29 +375,6 @@ function update() {
             fakeHitboxes = null
         }
 
-        // Handle P1 health bar and icon
-
-        img(ImageMemory["plricon.png"], 0, 0, 32, 32, 35, 25, 64, 64)
-        img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 112, 40, (158 * (P1.hp / P1.maxHP)), 32)
-        img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 100, 40, 184, 32)
-
-        // Handle enemy counter
-
-        img(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
-
-        let rem = strToUINum((100 - enemiesRemaining))
-        for (let i = 0; (i < 3); i++) {
-            const size = eRemaining[`size${i}`] || 1 // for animation purposes
-            const off = (size > 1 && ((27 * size) / 4)) || 0 // animation rough offset
-            img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - off) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
-        }
-        rem = null
-
-        CTX.textAlign = "left"
-        fstyle("rgb(255, 255, 152)")
-        font("24px Humming")
-        text("enemies", (cenX + 440), 75, 200)
-
         // Handle 'Beat 100 enemies'
         let eAnim = Animators.enemies
         let efAnim = Animators.enemiesflash
@@ -455,32 +393,74 @@ function update() {
         if (aAnim.times > -1) img(ImageMemory[`attack${aAnim.times}.png`], 0, 0, 128, 64, (cenX - 185), (cenY - 120), 400, 200)
         aAnim = null
 
-        // Handle low movement arrows
-        let nAnim = Animators.nav
-        if (nAnim.times > -1) img(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
+        if (SINGLE) {
+            // Handle P1 health bar and icon
 
-        if (nAnim.ended && ((NOW - lastGuySpawned) > 5000)) nAnim.play()
-        nAnim = null
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 35, 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 112, 40, (158 * (P1.hp / P1.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 100, 40, 184, 32)
 
-        // Handle 'victory' clear
+            // Handle enemy counter
 
-        if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
+            img(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
 
-        if (!P1.alive || ((SINGLE) && (enemiesRemaining <= 0)) && gamePlaying) {
-            gamePlaying = false
+            let rem = strToUINum((100 - enemiesRemaining))
+            for (let i = 0; (i < 3); i++) {
+                const size = eRemaining[`size${i}`] || 1 // for animation purposes
+                const off = (size > 1 && ((27 * size) / 4)) || 0 // animation rough offset
+                img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - off) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
+            }
+            rem = null
 
-            if (P1.alive && SINGLE) { // player has won
-                playSound("victory.mp3")
-                clearText.visible = true
-                Animators.clearin.play()
+            CTX.textAlign = "left"
+            fstyle("rgb(255, 255, 152)")
+            font("24px Humming")
+            text("enemies", (cenX + 440), 75, 200)
 
-                for (const f of Fighters) {
-                    if (!f.plr && f.alive) f.remove()
+            // Handle low movement arrows
+            let nAnim = Animators.nav
+            if (nAnim.times > -1) img(ImageMemory[`nav${nAnim.times}.png`], 0, 0, 64, 64, (w - 200), (cenY - 75), 128, 128)
+
+            if (nAnim.ended && ((NOW - lastGuySpawned) > 5000)) nAnim.play()
+            nAnim = null
+
+            // Handle 'victory' clear
+
+            if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
+
+            if (!P1.alive || ((enemiesRemaining <= 0)) && gamePlaying) {
+                gamePlaying = false
+
+                if (P1.alive) { // player has won
+                    playSound("victory.mp3")
+                    clearText.visible = true
+                    Animators.clearin.play()
+
+                    for (const f of Fighters) {
+                        if (!f.plr && f.alive) f.remove()
+                    }
+                }
+                else { // player has lost
+                    setTimeout(results, 3000)
                 }
             }
-            else { // player has lost
-                setTimeout(results, 3000)
-            }
+        }
+        else {
+            // Handle P1 health bar and icon
+
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 325, 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 402, 40, (158 * (P1.hp / P1.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 390, 40, 184, 32)
+
+            // Handle P2 health bar and icon
+
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 275), 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 102), 40, (158 * (P2.hp / P2.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 90), 40, 184, 32)
+
+            // Handle the little VS icon
+
+            img(ImageMemory["VS.png"], 0, 0, 52, 51, (cenX), 25, 64, 63)
         }
 
         if (DEBUG) { // player 1 fighter debug info
@@ -715,5 +695,3 @@ function start() {
 }
 
 document.addEventListener("mousedown", start)
-
-export default { isKeyFromClassDown }

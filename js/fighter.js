@@ -3,9 +3,10 @@
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp, img } from "./globals.js"
-import { isKeyFromClassDown, MODE, initialLeft } from "./main.js"
+import { MODE, initialLeft } from "./main.js"
 import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
+import { Controller } from "./controller.js"
 
 export const defHP = 40 // default HP for fighters
 export const stateBounds = { // image boundaries for each state
@@ -16,7 +17,8 @@ export const stateBounds = { // image boundaries for each state
     punch: { x: 589, y: 480, w: 217, h: 252 },
     kick: { x: 579, y: 794, w: 194, h: 259 },
     hurt: { x: 347, y: 791, w: 138, h: 262 },
-    shoot: { x: 813, y: 820, w: 214, h: 233, offset: { x: 0, y: 28 } }
+    shoot: { x: 813, y: 820, w: 214, h: 233, offset: { x: 0, y: 28 } },
+    taunt: { x: 586, y: 1111, w: 152, h: 257 } 
 }
 
 const FireballBounds = { // image boundaries for the fireball
@@ -132,6 +134,7 @@ export class Fighter extends Object {
     ignoreGravity = false
 
     timers = {} // contains 'Timer' classes; used for various things that need to be timed such as when a Fighter is attacking or stunned
+    controller // to be assigned to a player-based controller as long as this.plr exists
 
     img
     bounds // derived from state in stateBounds
@@ -163,8 +166,8 @@ export class Fighter extends Object {
         let xv = 0
 
         if (this.plr) { // derive this only from a fighter that is a player
-            crouchDesired = ((isKeyFromClassDown("crouch")))
-            xv = (((isKeyFromClassDown("left")) && -6) || ((isKeyFromClassDown("right")) && 6)) || 0
+            crouchDesired = ((this.controller.isKeyFromClassDown("CROUCH")))
+            xv = (((this.controller.isKeyFromClassDown("LEFT")) && -6) || ((this.controller.isKeyFromClassDown("RIGHT")) && 6)) || 0
         }
 
         this.velocity.x = xv
@@ -466,6 +469,37 @@ export class Fighter extends Object {
         }
     }
 
+    taunt() {
+        if (this.grounded && this.canAttack) {
+            this.marchLock = true
+
+            this.state = "taunt"
+
+            this.t.attack.start(1500)
+
+            if (this.grounded) this.velocity.x = 0
+        }
+    }
+
+    attack() {
+        if (this.grounded && this.velocity.x != 0) {
+            if (((!this.lefty) && this.velocity.x < 0) || ((this.lefty) && this.velocity.x > 0)) {
+                this.fireball()
+            }
+            else {
+                this.punch()
+            }
+        }
+        else {
+            if (this.state != "crouch") {
+                this.kick()
+            }
+            else {
+                // special
+            }
+        }
+    }
+
     constructor(x, y, plr, facing = "right", state = "stance", hp = defHP, name = "template") {
         const bounds = stateBounds[state]
 
@@ -488,6 +522,35 @@ export class Fighter extends Object {
         this.facing = facing
 
         for (const nm in FighterTimers) this.timers[nm] = new Timer(nm, (FighterTimers[nm]))
+
+        if (this.plr) {
+            let binds
+
+            if (this.plr == 1) {
+                binds = [
+                    {type: "JUMP", key: "SPACE", action: "jump"},
+                    {type: "JUMP", key: "W", action: "jump"},
+                    {type: "LEFT", key: "A"},
+                    {type: "RIGHT", key: "D"},
+                    {type: "CROUCH", key: "S"},
+                    {type: "ATTACK", key: "P", action: "attack"},
+                    {type: "TAUNT", key: "O", action: "taunt"},
+                ]
+            }
+            else { // assuming player 2 since there will not be more than 2 players
+                binds = [
+                    {type: "JUMP", key: "UP", action: "jump"},
+                    {type: "JUMP", key: "ENTER", action: "jump"},
+                    {type: "LEFT", key: "LT"},
+                    {type: "RIGHT", key: "RT"},
+                    {type: "CROUCH", key: "DN"},
+                    {type: "ATTACK", key: "PGDN", action: "attack"},
+                    {type: "TAUNT", key: "DEL", action: "taunt"}
+                ]
+            }
+
+            this.controller = new Controller(binds, this)
+        }
 
         Fighters.push(this)
     }
