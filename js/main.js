@@ -11,18 +11,17 @@ import { profile, saveData } from "./profile.js"
 import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
+import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
 
 let NOW = performance.now()
 let frame_time = NOW
 
 // Fundamental Variables
-export let MODE = 1 // 1 is singleplayer, 2 is multiplayer
+export let MODE = 2 // 1 is singleplayer, 2 is multiplayer
 let gamePlaying = false
 let menu = "loading"
 let nextMenu = "title"
 let loadingComplete = false
-let P1
-let P2
 
 // Boundary Variables
 export const initialLeft = 0
@@ -50,6 +49,63 @@ const eRemaining = {
 let flamenum = 0
 let lastFlame = 0
 
+// UI Buttons
+new Button("battle", undefined, "title", "battlebutton.png", undefined, { // Head Into Battle button
+    idle: {x: 104, y: 16, w: 112, h: 112},
+    select: {x: 216, y: 16, w: 112, h: 112},
+    highlight: {x: 104, y: 128, w: 112, h: 112},
+    locked: {x: 216, y: 128, w: 112, h: 112}
+}, (cenX + 56), cenY, function() {
+    menu = "modeselect"
+})
+new Button("create", "locked", "title", "createbutton.png", undefined, { // create button
+    idle: {x: 104, y: 16, w: 112, h: 112},
+    select: {x: 216, y: 16, w: 112, h: 112},
+    highlight: {x: 104, y: 128, w: 112, h: 112},
+    locked: {x: 216, y: 128, w: 112, h: 112}
+}, (cenX - 280), cenY)
+new Button("versus", undefined, "modeselect", "vsbutton.png", undefined, { // vs button
+    idle: {x: 104, y: 16, w: 112, h: 112},
+    select: {x: 216, y: 16, w: 112, h: 112},
+    highlight: {x: 104, y: 128, w: 112, h: 112},
+    locked: {x: 216, y: 128, w: 112, h: 112}
+}, (cenX - 280), cenY, function() {
+    stopSound("title.mp3")
+
+    MODE = 2
+    menu = "loading"
+    nextMenu = null
+    setTimeout(function() {
+        loadingComplete = true
+        initializeGame(500)
+    }, 2000)
+
+    blackTrans.val = 0
+    Animators.blackout.play()
+})
+new Button("survival", undefined, "modeselect", "survivalbutton.png", undefined, { // vs button
+    idle: {x: 104, y: 16, w: 112, h: 112},
+    select: {x: 216, y: 16, w: 112, h: 112},
+    highlight: {x: 104, y: 128, w: 112, h: 112},
+    locked: {x: 216, y: 128, w: 112, h: 112}
+}, (cenX + 56), cenY, function() {
+    stopSound("title.mp3")
+
+    MODE = 1
+    menu = "loading"
+    nextMenu = null
+    setTimeout(function() {
+        loadingComplete = true
+        initializeGame(500)
+    }, 2000)
+
+    blackTrans.val = 0
+    Animators.blackout.play()
+})
+
+let curSelected = getButton("battle")
+curSelected.state = "select"
+
 // SINGLE PLAYER VARIABLES
 
 // Enemy Spawning
@@ -67,11 +123,14 @@ let hpStatic = 0
 let enemiesDefeated = 0
 let displayingResults = false
 
-// END
-
 // Background Variables
 let bg0x = 0
 let bg1x = w
+
+let P1
+let P2
+
+// END
 
 // Menu Input Handler
 
@@ -81,21 +140,38 @@ document.addEventListener("keydown", keypress)
 function keypress(event) {
     const key = event.keyCode
 
-    if (key == KEYS.SPACE) {
-        if (menu == "title") {
-            stopSound("title.mp3")
-            playSound("mode.wav")
+    if (menu) {
+        if (key == KEYS.SPACE) {
+            if (curSelected && (menu == curSelected.menu)) {
+                curSelected.press()
+            }
+        }
+        else {
+            const dir = ((key == KEYS.A) && "LEFT") || ((key == KEYS.D) && "RIGHT") || ((key == KEYS.W) && "UP") || ((key == KEYS.S) && "DOWN")
+            
+            if (dir) {
+                const mB = menuButtons(menu)
 
-            menu = "loading"
-            nextMenu = null
+                if (curSelected.menu != menu) {
+                    curSelected = mB[0]
+                    curSelected.state = "select"
+                }
 
-            setTimeout(function() {
-                loadingComplete = true
-                initializeGame(500)
-            }, 2000)
-
-            blackTrans.val = 0
-            Animators.blackout.play()
+                let selB
+                for (const b of mB) {
+                    if (b.state != "locked") {
+                        if (selectNew(dir, selB, curSelected, b)) {
+                            selB = b
+                            break
+                        }
+                    }
+                }
+                if (selB) {
+                    curSelected.state = "idle"
+                    curSelected = selB
+                    selB.select()
+                }
+            }
         }
     }
 }
@@ -319,7 +395,7 @@ function update() {
                         // Basic AI
                         let movement
 
-                        if (a.canAttack) {
+                        if (a.canAttack && a.absRight < (initialRight + rightConstraint)) {
                             if (a.enemyType <= 50) {
                                 // kick type
                                 movement = 4
@@ -334,9 +410,11 @@ function update() {
                                 movement = 4
                                 if (Math.random() < 0.008) a.punch()
                             }
-                        }100
+                        }
 
                         if (movement && (a.alive && !a.t.attack.active && !a.t.stun.active)) a.velocity.x = -movement
+
+                        if (a.left < (leftConstraint - 200)) a.remove() // remove NPCs far off screen to free up memory
                     }
                 }
             }
@@ -404,6 +482,11 @@ function update() {
 
             img(ImageMemory["enemycounter.png"], 0, 0, 105, 25, (cenX + 350), 40, 210, 50)
 
+            CTX.textAlign = "left"
+            fstyle("rgb(255, 255, 152)")
+            font("24px Humming")
+            text("enemies", (cenX + 440), 75, 200)
+
             let rem = strToUINum((100 - enemiesRemaining))
             for (let i = 0; (i < 3); i++) {
                 const size = eRemaining[`size${i}`] || 1 // for animation purposes
@@ -411,11 +494,6 @@ function update() {
                 img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - off) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
             }
             rem = null
-
-            CTX.textAlign = "left"
-            fstyle("rgb(255, 255, 152)")
-            font("24px Humming")
-            text("enemies", (cenX + 440), 75, 200)
 
             // Handle low movement arrows
             let nAnim = Animators.nav
@@ -463,29 +541,25 @@ function update() {
             img(ImageMemory["VS.png"], 0, 0, 52, 51, (cenX), 25, 64, 63)
         }
 
-        if (DEBUG) { // player 1 fighter debug info
+        if (DEBUG) { // round debug info
             fstyle("red")
             font("20px Humming")
 
-            text(`state: ${P1.state}`, 20, 120, 150)
-            text(`x: ${Math.round(P1.left)} (v: ${Math.round(P1.velocity.x)}), y: ${Math.round(P1.top)} (v: ${Math.round(P1.velocity.y)})`, 20, 160, 300)
-            text(`grounded: ${P1.grounded}`, 20, 200, 150)
-            text(`m-lock: ${P1.marchLock}`, 20, 240, 150)
-            text(`attacking: ${(P1.t.attack.active)}`, 20, 280, 150)
-            text(`stunned: ${(P1.t.stun.active)}`, 20, 320, 150)
+            text(`state: ${P1.state}`, 20, 120)
+            text(`x: ${Math.round(P1.left)} (v: ${Math.round(P1.velocity.x)}), y: ${Math.round(P1.top)} (v: ${Math.round(P1.velocity.y)})`, 20, 160)
+            text(`grounded: ${P1.grounded}`, 20, 200)
+            text(`m-lock: ${P1.marchLock}`, 20, 240)
+            text(`attacking: ${(P1.t.attack.active)}`, 20, 280)
+            text(`stunned: ${(P1.t.stun.active)}`, 20, 320)
+            text(`fighters: ${Fighters.length}`, 20, 360)
+            text(`hitboxes: ${Hitboxes.length}`, 20, 400)
 
             frect(0, FLOOR, w, 2)
-
-            globalThis.ImageMemory = ImageMemory
-            globalThis.Fighters = Fighters
-            globalThis.Animators = Animators
         }
     }
     else { // Handle menus
         if (menu == "title") {
-            const s = SoundMemory["title.mp3"]
-
-            if (!s.playing) s.play()
+            SoundMemory["title.mp3"].play()
 
             fstyle("black")
 
@@ -509,13 +583,10 @@ function update() {
             CTX.textAlign = "center"
 
             font("30px Humming")
-            text("Passionyte 2025", cenX, (h - 50), 400)
+            text("Passionyte 2025", cenX, (h - 50))
 
             fstyle("yellow")
-            text("JS", cenX, (cenY - 100), 200)
-
-            font("18px Humming")
-            text("Press Space to Continue", cenX, (cenY - 25), 400)
+            text(".js", (cenX + 175), (cenY - 150))
         }
         else if (menu == "results") {
             img(ImageMemory["survivalbg.png"], 0, 0, 256, 256, 0, 0, w, (h * 1.33))
@@ -640,6 +711,7 @@ function update() {
 
             fstyle("rgb(255, 166, 0)")
             font("16px Humming")
+            CTX.textAlign = "center"
             text(`Loading${dots}`, (cenX + 20), (cenY + 5))
 
             if (!loadingComplete) { // continue loading
@@ -655,6 +727,51 @@ function update() {
                     loadingComplete = false
                 }, 100)
             }
+        }
+        else if (menu == "modeselect") {
+            fstyle("black")
+            frect(0, 0, w, h)
+
+            img(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 240), (cenY - 350), 512, 256)
+
+            if ((NOW - lastFlame) > 100) { // Change flame every 100ms
+                if (flamenum < 3) {
+                    flamenum++
+                }
+                else {
+                    flamenum = 0
+                }
+
+                lastFlame = NOW
+            }
+
+            img(ImageMemory[`flame${flamenum}.png`], 0, 0, w, h, -305, -70, 1810, 1400)
+
+            fstyle("yellow")
+            font("40px Humming")
+            CTX.textAlign = "center"
+            text("Mode Select", cenX, (cenY - 50))
+
+            font("30px Humming")
+            text(".js", (cenX + 175), (cenY - 150))
+
+            fstyle("black")
+            font("24px Humming")
+
+            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || "Defeat 100 enemies and show you rock!", cenX, (h - 50))
+        }
+
+        // load any buttons here
+        for (const b of menuButtons(menu)) b.draw()
+
+        // menu indicator
+        if (DEBUG) {
+            CTX.textAlign = "left"
+            font("20px Humming")
+            fstyle("red")
+
+            text(`menu: ${menu} (n: ${nextMenu})`, 20, 120)
+            text(`buttons: ${Buttons.length} (m: ${menuButtons(menu).length})`, 20, 160)
         }
     }
 
@@ -673,8 +790,8 @@ function update() {
         font("20px Humming")
 
         const fps = Math.round((TIME_PASSED / MS_PER_FRAME) * FPS)
-        text("debug mode", 20, 40, 200)
-        text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80, 150)
+        text("debug mode", 20, 40)
+        text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80)
     }
 }
 

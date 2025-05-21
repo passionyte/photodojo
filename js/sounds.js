@@ -14,6 +14,8 @@ export function newSound(save, src, v, l) {
     s.preload = "metadata" // ensure we preload audios to avoid unnecessary Silence. . .
 
     if (save) SoundMemory[src] = s // log to memory if chosen
+
+    return s
 }
 
 export function playSound(src, n) {
@@ -54,5 +56,6 @@ newSound(true, "title.mp3", undefined, true)
 newSound(true, "victory.mp3")
 newSound(true, "loading.wav", undefined, true)
 newSound(true, "loadingcomplete.wav")
+newSound(true, "select.wav")
 
 export default { SoundMemory }
