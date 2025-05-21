@@ -4,7 +4,7 @@
 
 import { initialLeft, initialRight } from "./main.js"
 
-export const DEBUG = true
+export const DEBUG = false
 
 export function d(id) {
     return document.getElementById(id)
