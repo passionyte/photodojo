@@ -2,6 +2,8 @@
 
 'use strict'
 
+import { gamePlaying } from "./main.js"
+
 export const KEYS = {
     // P1 controls
     SPACE:32, // jump
@@ -18,7 +20,9 @@ export const KEYS = {
     RT:39,
     ENTER:13, // jump
     DEL:110, // taunt
-    PGDN:99 // attack
+    PGDN:99, // attack
+    // Misc controls
+    BACKSPACE:8
 }
 
 class Bind {
@@ -83,7 +87,7 @@ export class Controller {
             if (!this.downKeys[key]) {
                 this.downKeys[key] = true
 
-                if (bind.action) this.owner[bind.action]()
+                if (bind.action && gamePlaying) this.owner[bind.action]()
             }
         }
     }
@@ -92,7 +96,7 @@ export class Controller {
         const bind = this.findBindFromKeyCode(key)
 
         if (bind) {
-            if (this.downKeys[key]) this.downKeys[key] = false//null
+            if (this.downKeys[key]) this.downKeys[key] = false
         }
     }
 

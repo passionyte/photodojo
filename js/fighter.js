@@ -18,7 +18,8 @@ export const stateBounds = { // image boundaries for each state
     kick: { x: 579, y: 794, w: 194, h: 259 },
     hurt: { x: 347, y: 791, w: 138, h: 262 },
     shoot: { x: 813, y: 820, w: 214, h: 233, offset: { x: 0, y: 28 } },
-    taunt: { x: 586, y: 1111, w: 152, h: 257 } 
+    taunt: { x: 586, y: 1110, w: 152, h: 258 },
+    victory: { x: 834, y: 1110, w: 152, h: 258 }
 }
 
 const FireballBounds = { // image boundaries for the fireball
@@ -51,9 +52,7 @@ export class Hitbox extends Object {
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
 
     remove() {
-        const h = Hitboxes.indexOf(this)
-        if (h) Hitboxes.splice(h, 1)
-        return
+        Hitboxes.splice(Hitboxes.indexOf(this), 1)
     }
 
     check(hit) {
@@ -159,8 +158,7 @@ export class Fighter extends Object {
     }
 
     remove() {
-        const f = Fighters.indexOf(this)
-        if (f) Fighters.splice(f, 1)
+        Fighters.splice(Fighters.indexOf(this), 1)
         return
     }
 
@@ -393,7 +391,7 @@ export class Fighter extends Object {
             if (((dmg >= 4) || !this.grounded) && !this.fallen) { // Heavy damage causing us to fall
                 sTimer.duration = 1200
                 this.fallen = true
-                this.bounces = 3
+                this.bounces = 1
                 this.velocity.y = -10
             }
             else {
@@ -425,7 +423,7 @@ export class Fighter extends Object {
                 }
             }
             else { // set bounces naturally
-                this.bounces = 3
+                this.bounces = 4
             }
         }
 
@@ -479,6 +477,18 @@ export class Fighter extends Object {
             this.state = "taunt"
 
             this.t.attack.start(1500)
+
+            if (this.grounded) this.velocity.x = 0
+        }
+    }
+
+    victory() {
+        if (this.grounded) {
+            this.marchLock = true
+            
+            this.state = "victory"
+
+            this.t.attack.start(3000)
 
             if (this.grounded) this.velocity.x = 0
         }

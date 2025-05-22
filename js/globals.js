@@ -27,31 +27,10 @@ if (!Live) document.title = `[DEV] ${document.title}`
 
 export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
 
-// Some convenient keyboard codes
-export const KEYS = {
-    SPACE:32,
-    UP_ARROW:38,
-    LEFT_ARROW:37,
-    DOWN_ARROW:40,
-    RIGHT_ARROW:39,
-    W:87,
-    A:65,
-    S:83,
-    D:68,
-    P:80
-}
-   
-// What each set of keyboard codes 'does'
-export const keyClasses = {
-    jump: [KEYS.W, KEYS.UP_ARROW, KEYS.SPACE],
-    crouch: [KEYS.S, KEYS.DOWN_ARROW],
-    left: [KEYS.A, KEYS.LEFT_ARROW],
-    right: [KEYS.D, KEYS.RIGHT_ARROW],
-    action: [KEYS.P]
-}
-
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
+
+export const VERSION = "alpha 0.2.0"
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)
