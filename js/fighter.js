@@ -71,8 +71,12 @@ export class Hitbox extends Object {
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
 
     remove() {
+<<<<<<< HEAD
         const h = Hitboxes.indexOf(this)
         if (h !== -1) Hitboxes.splice(h, 1)
+=======
+        Hitboxes.splice(Hitboxes.indexOf(this), 1)
+>>>>>>> e0c18ce (Class changes)
     }
 
     check(hit) {
@@ -182,8 +186,12 @@ export class Fighter extends Object {
     }
 
     remove() {
+<<<<<<< HEAD
         const f = Fighters.indexOf(this)
         if (f !== -1) Fighters.splice(f, 1)
+=======
+        Fighters.splice(Fighters.indexOf(this), 1)
+>>>>>>> e0c18ce (Class changes)
         return
     }
 
@@ -539,7 +547,11 @@ export class Fighter extends Object {
         }
     }
 
+<<<<<<< HEAD
     victory() { // strike a awesome victory pose!
+=======
+    victory() {
+>>>>>>> e0c18ce (Class changes)
         if (this.grounded) {
             this.marchLock = true
             
@@ -551,12 +563,18 @@ export class Fighter extends Object {
         }
     }
 
+<<<<<<< HEAD
     attack() { // helper for determining how to attack based on properties (called by controller)
         const xv = this.velocity.x
         const l = this.lefty
 
         if (this.grounded && (xv != 0)) {
             if (((!l) && (xv < 0)) || ((l) && (xv > 0))) {
+=======
+    attack() {
+        if (this.grounded && this.velocity.x != 0) {
+            if (((!this.lefty) && this.velocity.x < 0) || ((this.lefty) && this.velocity.x > 0)) {
+>>>>>>> e0c18ce (Class changes)
                 this.fireball()
             }
             else {

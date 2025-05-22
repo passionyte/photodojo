@@ -15,6 +15,7 @@ canvas {
 @font-face {
     font-family: Nitro;
     src: url('./fonts/NITROLC.ttf')
+<<<<<<< HEAD
 }
 
 a {
@@ -51,4 +52,6 @@ a {
     z-index: -100000;
     position: absolute;
     display: none
+=======
+>>>>>>> e0c18ce (Class changes)
 }

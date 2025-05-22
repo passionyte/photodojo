@@ -10,6 +10,8 @@
 
 import { GAME } from "./main.js"
 
+import { gamePlaying } from "./main.js"
+
 export const KEYS = {
     // P1 controls
     SPACE:32, // jump
@@ -93,7 +95,7 @@ export class Controller {
             if (!this.downKeys[key] && GAME.controls) {
                 this.downKeys[key] = true
 
-                if (bind.action) this.owner[bind.action]()
+                if (bind.action && gamePlaying) this.owner[bind.action]()
             }
         }
     }

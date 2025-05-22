@@ -11,8 +11,12 @@
 'use strict'
 
 import {
+<<<<<<< HEAD
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
     fstyle, VERSION, adtLen, promptUpload, parse, stringify
+=======
+    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle, VERSION
+>>>>>>> e0c18ce (Class changes)
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -28,10 +32,19 @@ import { Game } from "./game.js"
 
 export let GAME = new Game()
 
+<<<<<<< HEAD
 // Misc Variables
 let curCam
 let curPic
 let backgroundSlot
+=======
+// Fundamental Variables
+export let MODE = 2 // 1 is singleplayer, 2 is multiplayer
+export let gamePlaying = false
+let forcePlay = false
+let menu = "loading"
+let nextMenu = "title"
+>>>>>>> e0c18ce (Class changes)
 let loadingComplete = false
 let prePauseTimers = {}
 let downKeys = {}
@@ -226,6 +239,7 @@ new Button("uploadbg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     // upload background
 
+<<<<<<< HEAD
 }, {text: "Upload", font: "Humming", size: 28})
 // create bg
 new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
@@ -267,6 +281,16 @@ new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png
 new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     buttonLayout = null
+=======
+    blackTrans.val = 0
+    Animators.blackout.play()
+})
+new Button("modeback", undefined, "modeselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+    x: 0, y: 0, w: 78, h: 28
+}, 50, (h - 100), function() {
+    menu = "title"
+}, {text: "Back", font: "Nitro", size: 40})
+>>>>>>> e0c18ce (Class changes)
 
     imported.backgrounds[backgroundSlot] = stringify({
         src: curPic.src,
@@ -412,7 +436,11 @@ function keypress(event) {
             const dir = ((key == KEYS.A) && "LEFT") || ((key == KEYS.D) && "RIGHT") || ((key == KEYS.W) && "UP") || ((key == KEYS.S) && "DOWN")
             
             if (dir) {
+<<<<<<< HEAD
                 const mB = menuButtons(GAME.menu, buttonLayout)
+=======
+                const mB = menuButtons(menu)
+>>>>>>> e0c18ce (Class changes)
 
                 let selB
                 for (const b of mB) {
@@ -430,6 +458,7 @@ function keypress(event) {
             }
         }
     }
+<<<<<<< HEAD
     
     if (!GAME.menu) {
         if (key == KEYS.BACKSPACE) { // pause/unpause game
@@ -451,6 +480,13 @@ function keypress(event) {
                     for (const i in prePauseTimers) prePauseTimers[i].start(i) // restart timer from this point
                     prePauseTimers = {} // clear memory
                 }
+=======
+    else {
+        if (key == KEYS.BACKSPACE) { // pause/unpause game
+            if (!forcePlay) {
+                gamePlaying = (!gamePlaying)
+                playSound((((!gamePlaying) && "pause") || "resume") + ".wav", true) 
+>>>>>>> e0c18ce (Class changes)
             }
         }
     }
@@ -664,9 +700,14 @@ function singlePlayerIntro(cb) {
 
         setTimeout(function () {
             playSound("go.wav")
+<<<<<<< HEAD
             GAME.started = true
             GAME.controls = true
             timeStarted = GAME.now
+=======
+            gamePlaying = true
+            forcePlay = false
+>>>>>>> e0c18ce (Class changes)
             Animators.attack.play()
         }, 1050)
     }
@@ -678,9 +719,14 @@ function versusIntro() {
 
     setTimeout(function () {
         playSound("go.wav")
+<<<<<<< HEAD
         GAME.started = true
         GAME.controls = true
         timeStarted = GAME.now
+=======
+        gamePlaying = true
+        forcePlay = false
+>>>>>>> e0c18ce (Class changes)
         Animators.attack.play()
     }, 1050)
 }
@@ -689,8 +735,12 @@ function initializeGame(delay) {
     // (re)set some game variables
     bg0x = 0
     bg1x = w
+<<<<<<< HEAD
     globalThis.leftConstraint = initialLeft
     globalThis.rightConstraint = initialRight
+=======
+    forcePlay = true // to avoid weird fighter bugs w/ no updating
+>>>>>>> e0c18ce (Class changes)
 
     GAME.paused = false
     GAME.controls = false
@@ -780,7 +830,11 @@ function update() {
         // Handle fighters
 
         for (const a of Fighters) {
+<<<<<<< HEAD
             if ((GAME.started) && !GAME.paused) {
+=======
+            if (gamePlaying || forcePlay) {
+>>>>>>> e0c18ce (Class changes)
                 if (a.plr) {
                     if (a.grounded && !a.t.attack.active && !a.t.stun.active) a.setBaseState()
                 }
@@ -918,8 +972,14 @@ function update() {
 
             if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
 
+<<<<<<< HEAD
             if (!P1.alive || ((enemiesRemaining <= 0)) && GAME.started && GAME.controls) {
                 GAME.controls = false
+=======
+            if (!P1.alive || ((enemiesRemaining <= 0)) && gamePlaying) {
+                gamePlaying = false
+                forcePlay = true
+>>>>>>> e0c18ce (Class changes)
 
                 if (P1.alive) { // player has won
                     playSound("victory.mp3")
@@ -938,6 +998,7 @@ function update() {
         else {
             // Handle P1 health bar and icon
 
+<<<<<<< HEAD
             img(ImageMemory["plricon.png"], 0, 0, 32, 32, 360, 25, 64, 64)
             img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 437, 40, (158 * (P1.hp / P1.maxHP)), 32)
             img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 425, 40, 184, 32)
@@ -947,6 +1008,17 @@ function update() {
             img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 240), 25, 64, 64)
             img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 67), 40, (158 * (P2.hp / P2.maxHP)), 32)
             img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 55), 40, 184, 32)
+=======
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 350, 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 427, 40, (158 * (P1.hp / P1.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 415, 40, 184, 32)
+
+            // Handle P2 health bar and icon
+
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 250), 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 77), 40, (158 * (P2.hp / P2.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 65), 40, 184, 32)
+>>>>>>> e0c18ce (Class changes)
 
             // Handle the little VS icon
 
@@ -955,8 +1027,14 @@ function update() {
             // get who's alive
             a1 = P1.alive
             a2 = P2.alive
+<<<<<<< HEAD
             if ((!a1 || !a2) && GAME.controls) {
                 GAME.controls = false
+=======
+            if ((!a1 || !a2) && gamePlaying) {
+                gamePlaying = false
+                forcePlay = true
+>>>>>>> e0c18ce (Class changes)
                 
                 let delay = 2000
 
@@ -973,8 +1051,12 @@ function update() {
                 
                 // queue results after player celebrates
                 setTimeout(function() {
+<<<<<<< HEAD
                     GAME.started = false
                     GAME.menu = "vsresults"
+=======
+                    menu = "vsresults"
+>>>>>>> e0c18ce (Class changes)
                     Animators.blackout.play()        
                 }, (delay + 2000))
 
@@ -982,6 +1064,7 @@ function update() {
                     Animators.blackin.play()
                 }, (delay + 1000))
             }
+<<<<<<< HEAD
         }
 
         // Handle 'pause' screen
@@ -989,7 +1072,12 @@ function update() {
             fstyle("rgba(0, 0, 0, 0.8")
             frect(0, 0, w, h)
             img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 100), 177, 45)
+=======
+>>>>>>> e0c18ce (Class changes)
         }
+
+        // Handle 'pause' text
+        if (!gamePlaying && !forcePlay) img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 25), 177, 45)
 
         if (DEBUG) { // round debug info
             fstyle("red")
@@ -1036,6 +1124,11 @@ function update() {
             text("Passionyte 2025", cenX, (h - 50))
 
             fstyle("yellow")
+<<<<<<< HEAD
+=======
+            text(".js", (cenX + 175), (cenY - 150))
+
+>>>>>>> e0c18ce (Class changes)
             font("24px Humming")
             text(VERSION, cenX, (cenY - 100))
         }
@@ -1152,6 +1245,7 @@ function update() {
                 text(`High score ${profile.best.points} pts. ${profile.best.rank}`, (cenX + 100), (h - 50))
             }
         }
+<<<<<<< HEAD
         else if (GAME.menu == "vsresults") {
             if (a1 || a2) { // a player won
                 img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
@@ -1180,6 +1274,17 @@ function update() {
             }
         }
         else if (GAME.menu == "loading") {
+=======
+        else if (menu == "vsresults") {
+            if (a1 || a2) { // a player won
+                img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+            }
+            else { // draw
+                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+            }
+        }
+        else if (menu == "loading") {
+>>>>>>> e0c18ce (Class changes)
             fstyle("black")
             frect(0, 0, w, h)
 
@@ -1192,7 +1297,11 @@ function update() {
             fstyle("rgb(255, 166, 0)")
             font("20px Humming")
             CTX.textAlign = "center"
+<<<<<<< HEAD
             text(`Reading...`, (cenX + 20), (cenY + 10))
+=======
+            text(`Reading${dots}`, (cenX + 20), (cenY + 5))
+>>>>>>> e0c18ce (Class changes)
 
             if (!loadingComplete) { // continue loading
                 if (!SoundMemory["loading.wav"].playing) playSound("loading.wav")
@@ -1232,6 +1341,7 @@ function update() {
             CTX.textAlign = "center"
             text("Mode Select", cenX, (cenY - 50))
 
+<<<<<<< HEAD
             font("24px Humming")
             fstyle("black")
             text(((!globalThis.curSelected || globalThis.curSelected.menu != GAME.menu) && modeDescriptions.na) || modeDescriptions[globalThis.curSelected.name], cenX, (h - 50))
@@ -1361,6 +1471,26 @@ function update() {
             // tint the right beneath the button layout (doesn't really matter the order because this is the right)
             fstyle("rgba(0, 0, 0, 0.5)")
             frect((w / 2), 0, (w / 2), h)
+=======
+            font("30px Humming")
+            text(".js", (cenX + 175), (cenY - 150))
+
+            font("24px Humming")
+            //text(VERSION, cenX, (cenY - 100))
+
+            fstyle("black")
+            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || ((curSelected.name == "survival")) && "Defeat 100 enemies and show you rock!" || "Return to the title screen", cenX, (h - 50))
+        }
+
+        // load any buttons here
+        for (const b of menuButtons(menu)) {
+            if (curSelected.menu != menu && (b.state != "locked")) { // Always select a button that is *not* locked from a new menu
+                curSelected.state = "idle"
+                curSelected = b
+                b.state = "select"
+            }
+            b.draw()
+>>>>>>> e0c18ce (Class changes)
         }
 
         // menu indicator
@@ -1432,6 +1562,12 @@ function start() {
     CANVAS.removeEventListener("mousedown", start) // rid the event listener
 }
 
+<<<<<<< HEAD
 CANVAS.addEventListener("mousedown", start)
 
 export default { GAME }
+=======
+document.addEventListener("mousedown", start)
+
+export default { gamePlaying }
+>>>>>>> e0c18ce (Class changes)

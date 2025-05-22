@@ -8,7 +8,13 @@
  * Author: Logan
  */
 
+<<<<<<< HEAD
 import { img, text, font, CTX, fstyle } from "./globals.js"
+=======
+'use strict'
+
+import { img, text, font, CTX } from "./globals.js"
+>>>>>>> e0c18ce (Class changes)
 import { newImage } from "./images.js"
 import { playSound } from "./sounds.js"
 
@@ -31,7 +37,11 @@ export const lbuttonbounds = {x: 0, y: 0, w: 158, h: 64}
 
 export class Button {
     name
+<<<<<<< HEAD
     state = "i" // current state of the button (i.e. i: idle, p: pressed, s: selected, h: highlighted)
+=======
+    state // current state of the button (i.e. idle, pressed, selected)
+>>>>>>> e0c18ce (Class changes)
     menu // menu the button belongs to
     position = {
         x: 0,   
@@ -42,12 +52,19 @@ export class Button {
     snds // button sounds (for being pressed or selected etc.)
     scale // image scale
     onpress // on press callback
+<<<<<<< HEAD
     canpress = true
     text // should be a dictionary containing text, font, size, etc. 'size' will only function if a font is given
     active = true // can be selected or pressed (overwrites all)
 
     get sBounds() {
         return this.bounds[this.state] || this.bounds.i || this.bounds // default to idle if bounds for a given state don't exist or just bounds
+=======
+    text // should be a dictionary containing text, font, size, etc. 'size' will only function if a font is given
+
+    get sBounds() {
+        return this.bounds[this.state] || this.bounds.idle || this.bounds // default to idle if bounds for a given state don't exist or just bounds
+>>>>>>> e0c18ce (Class changes)
     }
 
     get x() {
@@ -69,7 +86,11 @@ export class Button {
     }
 
     draw() { // draw from state bounds and position
+<<<<<<< HEAD
         if (this.img.i) {
+=======
+        if (this.img.d) {
+>>>>>>> e0c18ce (Class changes)
             img(this.img[this.state], this.sBounds.x, this.sBounds.y, this.sBounds.w, this.sBounds.h, this.x, this.y, (this.sBounds.w * this.scale), (this.sBounds.h * this.scale))
         }
         else {
@@ -77,7 +98,10 @@ export class Button {
         }
 
         if (this.text) {
+<<<<<<< HEAD
             fstyle("black")
+=======
+>>>>>>> e0c18ce (Class changes)
             CTX.textAlign = "center"
             if (this.text.font) font(`${this.text.size}px ${this.text.font}`)
             text(this.text.text, (this.x + this.sBounds.w), (this.y + (this.sBounds.h * 1.3)))
@@ -88,11 +112,18 @@ export class Button {
         this.doSound("press")
         this.state = "p"
 
+<<<<<<< HEAD
         setTimeout(this.onpress, 100)
         setTimeout(() => {
             this.state = ((globalThis.curSelected == this)) && "s" || "i"
             this.canpress = true
         }, 500)
+=======
+        setTimeout(() => { // typically, the button will no longer be selected after this if the menu changes
+            this.state = "idle"//"select"
+            if (this.onpress) this.onpress()
+        }, 100)
+>>>>>>> e0c18ce (Class changes)
     }
 
     select() { // when the player selects the button
@@ -101,7 +132,11 @@ export class Button {
         this.canpress = true
     }
 
+<<<<<<< HEAD
     constructor(n, m, i, snds = genericSounds, b, x, y, onpress, text, scale = 2) {
+=======
+    constructor(n, s = "idle", m, i, snds = genericSounds, b, x, y, onpress, text, scale = 2) {
+>>>>>>> e0c18ce (Class changes)
         this.name = n
         this.menu = m
         if (typeof(i) == "object") { // image per state

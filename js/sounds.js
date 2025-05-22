@@ -67,6 +67,7 @@ newSound(true, "loadingcomplete.wav")
 newSound(true, "select.wav")
 newSound(true, "pause.wav")
 newSound(true, "resume.wav")
+<<<<<<< HEAD
 newSound(true, "text.wav")
 newSound(true, "titlebutton.wav")
 newSound(true, "titlecancel.wav")
@@ -74,5 +75,7 @@ newSound(true, "createbutton.wav")
 newSound(true, "createcancel.wav")
 newSound(true, "taunt.wav")
 newSound(true, "attention.wav")
+=======
+>>>>>>> e0c18ce (Class changes)
 
 export default { SoundMemory }

@@ -39,12 +39,16 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
+<<<<<<< HEAD
 export let VERSION = "alpha 0.4.5"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
     VERSION += " DEV"
 }
+=======
+export const VERSION = "alpha 0.2.0"
+>>>>>>> e0c18ce (Class changes)
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)
