@@ -10,3 +10,8 @@ canvas {
     font-family: Humming;
     src: url('./fonts/FOT-HummingStd-D.otf')
 }
+
+@font-face {
+    font-family: Nitro;
+    src: url('./fonts/NITROLC.ttf')
+}

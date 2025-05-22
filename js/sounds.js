@@ -57,5 +57,7 @@ newSound(true, "victory.mp3")
 newSound(true, "loading.wav", undefined, true)
 newSound(true, "loadingcomplete.wav")
 newSound(true, "select.wav")
+newSound(true, "pause.wav")
+newSound(true, "resume.wav")
 
 export default { SoundMemory }

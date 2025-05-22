@@ -3,7 +3,7 @@
 'use strict'
 
 import {
-    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle
+    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle, VERSION
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators } from "./animate.js"
@@ -18,7 +18,8 @@ let frame_time = NOW
 
 // Fundamental Variables
 export let MODE = 2 // 1 is singleplayer, 2 is multiplayer
-let gamePlaying = false
+export let gamePlaying = false
+let forcePlay = false
 let menu = "loading"
 let nextMenu = "title"
 let loadingComplete = false
@@ -102,6 +103,11 @@ new Button("survival", undefined, "modeselect", "survivalbutton.png", undefined,
     blackTrans.val = 0
     Animators.blackout.play()
 })
+new Button("modeback", undefined, "modeselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+    x: 0, y: 0, w: 78, h: 28
+}, 50, (h - 100), function() {
+    menu = "title"
+}, {text: "Back", font: "Nitro", size: 40})
 
 let curSelected = getButton("battle")
 curSelected.state = "select"
@@ -129,6 +135,8 @@ let bg1x = w
 
 let P1
 let P2
+let a1 // represents P1.alive for vs results
+let a2 // represents P2.alive for vs results
 
 // END
 
@@ -152,11 +160,6 @@ function keypress(event) {
             if (dir) {
                 const mB = menuButtons(menu)
 
-                if (curSelected.menu != menu) {
-                    curSelected = mB[0]
-                    curSelected.state = "select"
-                }
-
                 let selB
                 for (const b of mB) {
                     if (b.state != "locked") {
@@ -171,6 +174,14 @@ function keypress(event) {
                     curSelected = selB
                     selB.select()
                 }
+            }
+        }
+    }
+    else {
+        if (key == KEYS.BACKSPACE) { // pause/unpause game
+            if (!forcePlay) {
+                gamePlaying = (!gamePlaying)
+                playSound((((!gamePlaying) && "pause") || "resume") + ".wav", true) 
             }
         }
     }
@@ -284,6 +295,7 @@ function singlePlayerIntro(cb) {
         setTimeout(function () {
             playSound("go.wav")
             gamePlaying = true
+            forcePlay = false
             Animators.attack.play()
         }, 1050)
     }
@@ -296,6 +308,7 @@ function versusIntro() {
     setTimeout(function () {
         playSound("go.wav")
         gamePlaying = true
+        forcePlay = false
         Animators.attack.play()
     }, 1050)
 }
@@ -304,6 +317,7 @@ function initializeGame(delay) {
     // (re)set some game variables
     bg0x = 0
     bg1x = w
+    forcePlay = true // to avoid weird fighter bugs w/ no updating
 
     if (MODE == 1) { // singleplayer
         P1 = new Fighter(cenX, (FLOOR - 258), 1)
@@ -384,7 +398,7 @@ function update() {
         // Handle fighters
 
         for (const a of Fighters) {
-            if (gamePlaying) {
+            if (gamePlaying || forcePlay) {
                 if (a.plr) {
                     if (a.grounded && !a.t.attack.active && !a.t.stun.active) a.setBaseState()
                 }
@@ -417,9 +431,11 @@ function update() {
                         if (a.left < (leftConstraint - 200)) a.remove() // remove NPCs far off screen to free up memory
                     }
                 }
+                a.update()
             }
-
-            a.update()
+            else {
+                a.draw()
+            }
         }
 
         if (gamePlaying) {
@@ -508,6 +524,7 @@ function update() {
 
             if (!P1.alive || ((enemiesRemaining <= 0)) && gamePlaying) {
                 gamePlaying = false
+                forcePlay = true
 
                 if (P1.alive) { // player has won
                     playSound("victory.mp3")
@@ -526,20 +543,54 @@ function update() {
         else {
             // Handle P1 health bar and icon
 
-            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 325, 25, 64, 64)
-            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 402, 40, (158 * (P1.hp / P1.maxHP)), 32)
-            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 390, 40, 184, 32)
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 350, 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 427, 40, (158 * (P1.hp / P1.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 415, 40, 184, 32)
 
             // Handle P2 health bar and icon
 
-            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 275), 25, 64, 64)
-            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 102), 40, (158 * (P2.hp / P2.maxHP)), 32)
-            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 90), 40, 184, 32)
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 250), 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 77), 40, (158 * (P2.hp / P2.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 65), 40, 184, 32)
 
             // Handle the little VS icon
 
-            img(ImageMemory["VS.png"], 0, 0, 52, 51, (cenX), 25, 64, 63)
+            img(ImageMemory["VSui.png"], 0, 0, 32, 27, (cenX), 25, 64, 54)
+
+            // get who's alive
+            a1 = P1.alive
+            a2 = P2.alive
+            if ((!a1 || !a2) && gamePlaying) {
+                gamePlaying = false
+                forcePlay = true
+                
+                let delay = 2000
+
+                // see who's winning and make them do victory stance
+                if (a1) {
+                    P1.victory()
+                }
+                else if (a2) {
+                    P2.victory()
+                }
+                else { // draw... just get it over with
+                    delay = 0
+                }
+                
+                // queue results after player celebrates
+                setTimeout(function() {
+                    menu = "vsresults"
+                    Animators.blackout.play()        
+                }, (delay + 2000))
+
+                setTimeout(function() {
+                    Animators.blackin.play()
+                }, (delay + 1000))
+            }
         }
+
+        // Handle 'pause' text
+        if (!gamePlaying && !forcePlay) img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 25), 177, 45)
 
         if (DEBUG) { // round debug info
             fstyle("red")
@@ -565,7 +616,7 @@ function update() {
 
             frect(0, 0, w, h)
 
-            img(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 240), (cenY - 350), 512, 256)
+            img(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 250), (cenY - 350), 512, 256)
 
             if ((NOW - lastFlame) > 100) { // Change flame every 100ms
                 if (flamenum < 3) {
@@ -587,6 +638,9 @@ function update() {
 
             fstyle("yellow")
             text(".js", (cenX + 175), (cenY - 150))
+
+            font("24px Humming")
+            text(VERSION, cenX, (cenY - 100))
         }
         else if (menu == "results") {
             img(ImageMemory["survivalbg.png"], 0, 0, 256, 256, 0, 0, w, (h * 1.33))
@@ -698,6 +752,14 @@ function update() {
                 text(`High score ${profile.best.points} pts. ${profile.best.rank}`, (cenX + 100), (h - 50))
             }
         }
+        else if (menu == "vsresults") {
+            if (a1 || a2) { // a player won
+                img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+            }
+            else { // draw
+                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+            }
+        }
         else if (menu == "loading") {
             fstyle("black")
             frect(0, 0, w, h)
@@ -712,7 +774,7 @@ function update() {
             fstyle("rgb(255, 166, 0)")
             font("16px Humming")
             CTX.textAlign = "center"
-            text(`Loading${dots}`, (cenX + 20), (cenY + 5))
+            text(`Reading${dots}`, (cenX + 20), (cenY + 5))
 
             if (!loadingComplete) { // continue loading
                 if (!SoundMemory["loading.wav"].playing) playSound("loading.wav")
@@ -732,7 +794,7 @@ function update() {
             fstyle("black")
             frect(0, 0, w, h)
 
-            img(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 240), (cenY - 350), 512, 256)
+            img(ImageMemory["title.png"], 0, 0, 256, 128, (cenX - 250), (cenY - 350), 512, 256)
 
             if ((NOW - lastFlame) > 100) { // Change flame every 100ms
                 if (flamenum < 3) {
@@ -755,14 +817,22 @@ function update() {
             font("30px Humming")
             text(".js", (cenX + 175), (cenY - 150))
 
-            fstyle("black")
             font("24px Humming")
+            //text(VERSION, cenX, (cenY - 100))
 
-            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || "Defeat 100 enemies and show you rock!", cenX, (h - 50))
+            fstyle("black")
+            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || ((curSelected.name == "survival")) && "Defeat 100 enemies and show you rock!" || "Return to the title screen", cenX, (h - 50))
         }
 
         // load any buttons here
-        for (const b of menuButtons(menu)) b.draw()
+        for (const b of menuButtons(menu)) {
+            if (curSelected.menu != menu && (b.state != "locked")) { // Always select a button that is *not* locked from a new menu
+                curSelected.state = "idle"
+                curSelected = b
+                b.state = "select"
+            }
+            b.draw()
+        }
 
         // menu indicator
         if (DEBUG) {
@@ -812,3 +882,5 @@ function start() {
 }
 
 document.addEventListener("mousedown", start)
+
+export default { gamePlaying }
