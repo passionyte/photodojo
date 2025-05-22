@@ -222,6 +222,12 @@ function determineRank(points = pointsStatic) { // determines rank from points (
     if (points >= 175) {
         rank = "S"
     }
+    else if (points >= 150) {
+        rank = "AAA"
+    }
+    else if (points >= 125) {
+        rank = "AA"
+    }
     else if (points >= 100) {
         rank = "A"
     }
@@ -507,7 +513,7 @@ function update() {
             for (let i = 0; (i < 3); i++) {
                 const size = eRemaining[`size${i}`] || 1 // for animation purposes
                 const off = (size > 1 && ((27 * size) / 4)) || 0 // animation rough offset
-                img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - off) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
+                img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - (off * 2)) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
             }
             rem = null
 
