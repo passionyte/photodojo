@@ -30,7 +30,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export const VERSION = "alpha 0.2.1" + ((!Live) && " DEV")
+export const VERSION = "alpha 0.2.2" + ((!Live) && " DEV")
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)

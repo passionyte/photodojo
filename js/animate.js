@@ -2,9 +2,12 @@
 
 'use strict'
 
+import { playSound } from "./sounds.js"
+
 export const Animators = {}
 
 export class Animator {
+    // base properties
     name // string ref.
     type
     playing = false
@@ -22,9 +25,16 @@ export class Animator {
     // tween properties
     object
     properties
-    start
-    time
     startProps = {}
+    time
+
+    // typeout properties
+    textObj
+    textGoal
+    typeSound
+
+    // shared properties
+    start
 
     tick() { // per each 'tick' of the animator
         if (!this.playing) return
@@ -42,17 +52,30 @@ export class Animator {
                 const div = (this.duration / this.time) // get the divisor for the tween based on the current time/progress and the duration of the tween
                 let v
 
-                if (this.properties[p] < this.startProps[p]) { // tween down
-                    v = ((this.properties[p] + this.startProps[p]) - (this.startProps[p] / div))
+                const pP = this.properties[p]
+                const sP = this.startProps[p]
+
+                if (pP < sP) { // tween down
+                    v = ((pP + sP) - (sP / div))
                 }
                 else { // tween up
-                    v = (this.startProps[p] + (this.properties[p] / div))
+                    v = (sP + (pP / div))
                 }
 
                 this.object[p] = v
             }
 
             if (this.time >= this.duration) this.stop() // reached our goal, end
+        }
+        else if (this.type == "typeout") {
+            if (!this.textObj.str.includes(this.textGoal)) { // Don't run if we have exceeded the length or we still need to yield)
+                this.textObj.str += this.textGoal[this.times]
+                if (this.typeSound) playSound(this.typeSound, true)
+                this.times++
+            }
+            else {
+                this.stop(true) // end of typeout, end
+            }
         }
     }
 
@@ -64,13 +87,17 @@ export class Animator {
 
         let dur = customInt
 
-        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((this.type == "tween") && 1) || this.duration // determine the duration of the interval
+        const t = (this.type == "tween") // convenience
 
-        if (this.type == "tween") {
+        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((t) && 1) || ((this.type == "typeout") && (this.duration / this.textGoal.length)) || this.duration // determine the duration of the interval
+        
+        if (t || (this.type == "typeout")) {
             this.start = performance.now()
 
-            for (let p in this.properties) { // Log our starting properties so we can properly tween from them
-                if (!this.startProps[p]) this.startProps[p] = this.object[p]
+            if (t) {
+                for (let p in this.properties) { // Log our starting properties so we can properly tween from them
+                    if (!this.startProps[p]) this.startProps[p] = this.object[p]
+                }
             }
         }
 
@@ -83,16 +110,21 @@ export class Animator {
         setTimeout(() => { // Reset everything we need to
             if (this.interval) clearInterval(this.interval)
 
-            if (this.type.includes("frame")) {
+            // convenience variables
+            const t = (this.type == "tween")
+            const to = (this.type == "typeout")
+
+            if (this.type.includes("frame") || to) {
                 this.times = -1
             }
-            else if (this.type == "tween") {
-                for (let p in this.properties) this.object[p] = this.properties[p] // ensure the object is set to the final property value in case it is under or over
-
+            else if (t || to) {
+                if (t) {
+                    for (let p in this.properties) this.object[p] = this.properties[p] // ensure the object is set to the final property value in case it is under or over
+                    this.time = 0
+                    this.startProps = {}
+                }
+                
                 this.start = -1
-                this.time = 0
-
-                this.startProps = {}
             }
 
             this.ended = true
@@ -124,7 +156,13 @@ export class Animator {
         else if (this.type == "tween") {    
             this.properties = dat.prop
             this.object = dat.obj
-        } 
+        }
+        else if (this.type == "typeout") {
+            this.times = 0
+            this.textGoal = dat.obj.goal || dat.goal
+            this.textObj = dat.obj
+            this.typeSound = dat.snd
+        }
 
         // bind the functions to the class (fixes a ref error)
         this.tick = this.tick.bind(this)
