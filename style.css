@@ -3,7 +3,8 @@ body {
 }
 
 canvas {
-    background-color: white
+    background-color: white;
+    border: 0.5vw solid rgb(20, 20, 20);
 }
 
 @font-face {
@@ -14,4 +15,32 @@ canvas {
 @font-face {
     font-family: Nitro;
     src: url('./fonts/NITROLC.ttf')
+}
+
+a {
+    font-family: Nitro
+}
+
+.title {
+    font-size: 4vw;
+    font-weight: bold
+}
+
+.subtitle {
+    font-size: 1.5vw;
+    font-weight: bold
+}
+
+.center {
+    display: block;
+    width: 50%;
+    margin: auto
+}
+.center, a {
+    text-align: center;
+    width: 100%
+}
+
+.bottommed {
+    margin-bottom: 2vw;
 }

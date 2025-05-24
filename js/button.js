@@ -2,7 +2,7 @@
 
 'use strict'
 
-import { img, text, font, CTX } from "./globals.js"
+import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"
 import { playSound } from "./sounds.js"
 
@@ -59,6 +59,7 @@ export class Button {
         }
 
         if (this.text) {
+            fstyle("black")
             CTX.textAlign = "center"
             if (this.text.font) font(`${this.text.size}px ${this.text.font}`)
             text(this.text.text, (this.x + this.sBounds.w), (this.y + (this.sBounds.h * 1.3)))

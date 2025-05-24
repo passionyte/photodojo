@@ -2,9 +2,22 @@
 
 'use strict'
 
+import { adtLen } from "./globals.js"
+import { playSound } from "./sounds.js"
+
 export const Animators = {}
+export const Timers = [] // global memory
+
+function tLen(a) { // same as adtlen but considers length of each value (meant for goals or arrays within adts)
+    let result = 0
+
+    for (let i = 0; i < adtLen(a); i++) result += a[i].length
+
+    return result
+}
 
 export class Animator {
+    // base properties
     name // string ref.
     type
     playing = false
@@ -22,9 +35,17 @@ export class Animator {
     // tween properties
     object
     properties
-    start
-    time
     startProps = {}
+    time
+
+    // typeout properties
+    textObj
+    textGoals
+    typeSound
+    lineTarg
+
+    // shared properties
+    start
 
     tick() { // per each 'tick' of the animator
         if (!this.playing) return
@@ -42,17 +63,45 @@ export class Animator {
                 const div = (this.duration / this.time) // get the divisor for the tween based on the current time/progress and the duration of the tween
                 let v
 
-                if (this.properties[p] < this.startProps[p]) { // tween down
-                    v = ((this.properties[p] + this.startProps[p]) - (this.startProps[p] / div))
+                const pP = this.properties[p]
+                const sP = this.startProps[p]
+
+                if (pP < sP) { // tween down
+                    v = ((pP + sP) - (sP / div))
                 }
                 else { // tween up
-                    v = (this.startProps[p] + (this.properties[p] / div))
+                    v = (sP + (pP / div))
                 }
 
                 this.object[p] = v
             }
 
             if (this.time >= this.duration) this.stop() // reached our goal, end
+        }
+        else if (this.type == "typeout") {
+            if (this.times == -1) this.times = 0 // since 'this.times' is used in both frame and typeout it needs to be reset from -1 to 0 here
+
+            const strs = this.textObj.strs
+            const targGoal = this.textGoals[this.lineTarg]
+
+            if (!targGoal) { // Just in case we have a non-existant goal
+                this.stop(true)
+                return
+            }
+
+            if (!strs[this.lineTarg]) strs[this.lineTarg] = "" // another 'just in case', haha
+
+            if (!strs[this.lineTarg].includes(targGoal)) {
+                strs[this.lineTarg] += targGoal[this.times] // add the next character to the string
+                if (this.typeSound) playSound(this.typeSound, true) // play sound if we have one
+                this.times++
+            }
+            else { // move to next line
+                this.lineTarg++
+                this.times = 0
+
+                if (this.lineTarg >= adtLen(this.textGoals)) this.stop(true) // reached our goal, end
+            }
         }
     }
 
@@ -64,13 +113,31 @@ export class Animator {
 
         let dur = customInt
 
-        if (!dur) dur = ((this.type.includes("frame")) && (this.duration / this.timesGoal)) || ((this.type == "tween") && 1) || this.duration // determine the duration of the interval
+        const t = (this.type == "tween") // convenience
 
-        if (this.type == "tween") {
+        if (!dur) {
+            // set dur if not custom
+            if (this.type.includes("frame")) {
+                dur = (this.duration / this.timesGoal)
+            }
+            else if (this.type == "tween") {
+                dur = 1
+            }
+            else if (this.type == "typeout") {
+                dur = (this.duration / (tLen(this.textGoals) * 3))
+            }
+            else {
+                dur = this.duration // default duration
+            }
+        }
+
+        if (t || (this.type == "typeout")) {
             this.start = performance.now()
 
-            for (let p in this.properties) { // Log our starting properties so we can properly tween from them
-                if (!this.startProps[p]) this.startProps[p] = this.object[p]
+            if (t) {
+                for (let p in this.properties) { // Log our starting properties so we can properly tween from them
+                    if (!this.startProps[p]) this.startProps[p] = this.object[p]
+                }
             }
         }
 
@@ -83,16 +150,25 @@ export class Animator {
         setTimeout(() => { // Reset everything we need to
             if (this.interval) clearInterval(this.interval)
 
+            // convenience variables
+            const t = (this.type == "tween")
+            const to = (this.type == "typeout")
+
             if (this.type.includes("frame")) {
                 this.times = -1
             }
-            else if (this.type == "tween") {
-                for (let p in this.properties) this.object[p] = this.properties[p] // ensure the object is set to the final property value in case it is under or over
-
+            else if (t || to) {
+                if (t) {
+                    for (let p in this.properties) this.object[p] = this.properties[p] // ensure the object is set to the final property value in case it is under or over
+                    this.time = 0
+                    this.startProps = {}
+                }
+                else {
+                    this.times = -1
+                    this.lineTarg = 0
+                }
+                
                 this.start = -1
-                this.time = 0
-
-                this.startProps = {}
             }
 
             this.ended = true
@@ -124,7 +200,14 @@ export class Animator {
         else if (this.type == "tween") {    
             this.properties = dat.prop
             this.object = dat.obj
-        } 
+        }
+        else if (this.type == "typeout") {
+            this.times = 0
+            this.lineTarg = 0
+            this.textGoals = dat.obj.goals || dat.goals
+            this.textObj = dat.obj
+            this.typeSound = dat.snd
+        }
 
         // bind the functions to the class (fixes a ref error)
         this.tick = this.tick.bind(this)
@@ -139,8 +222,9 @@ export class Timer { // Used for Fighter class primarily; can be used for other 
     active = false // is timer active
     began = 0 // time when timer began
     duration = 0 // duration of timer (in ms)
+    lastDur = 0 // previous duration (typically default)
 
-    check() { // if the timer is active and the duration has passed, return true
+    check() { // if the timer is active and the duration has passed, return true        
         return (this.active && ((performance.now() - this.began) > this.duration))
     }
 
@@ -148,11 +232,18 @@ export class Timer { // Used for Fighter class primarily; can be used for other 
         this.active = true
         this.began = performance.now()
 
-        if (d) this.duration = d
+        if (d) {
+            this.lastDur = this.duration
+            this.duration = d
+        }
     }
 
     stop() { // stop the timer
         this.active = false
+        if (this.lastDur > 0) {
+            this.duration = this.lastDur
+            this.lastDur = 0
+        }
     }
 
     constructor(n = "timer", d = 1000, a) {
@@ -160,6 +251,8 @@ export class Timer { // Used for Fighter class primarily; can be used for other 
 
         this.name = n
         this.duration = d
+
+        Timers.push(this)
     }
 }
 

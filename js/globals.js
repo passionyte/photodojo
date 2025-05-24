@@ -30,7 +30,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export const VERSION = "alpha 0.2.0"
+export const VERSION = "alpha 0.2.5" + ((!Live) && " DEV")
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)
@@ -57,6 +57,14 @@ export function cloneArray(a) {
     for (const t of a) {
         result.push(t)
     }
+
+    return result
+}
+
+export function adtLen(a) {
+    let result = 0
+
+    for (const t in a) result++
 
     return result
 }

@@ -2,8 +2,8 @@
 
 'use strict'
 
-import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, h, collision, clamp, img } from "./globals.js"
-import { MODE, initialLeft } from "./main.js"
+import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, collision, clamp, img } from "./globals.js"
+import { MODE, initialLeft, gamePaused } from "./main.js"
 import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
 import { Controller } from "./controller.js"
@@ -295,28 +295,41 @@ export class Fighter extends Object {
     }
 
     draw() {
-        if (this.state == "march") { // Do march animation
-            this.bounds = stateBounds.stance
-            const NOW = performance.now()
+        if (gamePaused) {
+            this.bounds = stateBounds[this.state]
+        }
+        else {
+            if (this.state == "march") { // Do march animation
+                this.bounds = stateBounds.stance
+                const NOW = performance.now()
 
-            if (!this.lastStep) { // exception for first step
-                this.lastStep = NOW
-            }
-            else {
-                const delta = (NOW - this.lastStep)
+                if (!this.lastStep) { // exception for first step
+                    this.lastStep = NOW
+                }
+                else {
+                    const delta = (NOW - this.lastStep)
 
-                if (delta > 150) { // take 'step'
-                    this.bounds = stateBounds.march
+                    if (delta > 150) { // take 'step'
+                        this.bounds = stateBounds.march
 
-                    if (delta > 300) { // reset lastStep
-                        this.lastStep = NOW
+                        if (delta > 300) { // reset lastStep
+                            this.lastStep = NOW
+                        }
                     }
                 }
             }
         }
 
-        // simple shadow
-        if (this.grounded) img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16)), this.bottom, this.width, 18)
+        // shadow image
+        // calculate the difference between the ground and the fighter's feet and...
+        // modify the dimensions and alpha by that amount to make the shadow expand and become more transparent 
+        // based on how high they are
+        let yDiff = (FLOOR - this.bottom)
+        CTX.save()
+        CTX.globalAlpha = (0.8 - (yDiff / 1600))
+        img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16) - (yDiff / 8)), FLOOR, (this.width + (yDiff / 4)), (18 + (yDiff / 32)))
+        CTX.restore()
+        yDiff = null
 
         if (!this.fallen) { // fighter is standing
             const w = this.bounds.w

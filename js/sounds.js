@@ -59,5 +59,6 @@ newSound(true, "loadingcomplete.wav")
 newSound(true, "select.wav")
 newSound(true, "pause.wav")
 newSound(true, "resume.wav")
+newSound(true, "text.wav")
 
 export default { SoundMemory }
