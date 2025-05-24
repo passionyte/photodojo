@@ -3,10 +3,10 @@
 'use strict'
 
 import {
-    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle, VERSION
+    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle, VERSION, adtLen
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
-import { Animator, Animators } from "./animate.js"
+import { Animator, Animators, Timers } from "./animate.js"
 import { profile, saveData } from "./profile.js"
 import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
@@ -18,11 +18,14 @@ let frame_time = NOW
 
 // Fundamental Variables
 export let MODE = 2 // 1 is singleplayer, 2 is multiplayer
-export let gamePlaying = false
-let forcePlay = false
+export let gameStarted = false
+export let gamePaused = false
+export let gameControls = false // locks Controllers
 let menu = "loading"
 let nextMenu = "title"
 let loadingComplete = false
+let prePauseTimers = {}
+let downKeys = {}
 
 // Boundary Variables
 export const initialLeft = 0
@@ -48,8 +51,16 @@ const eRemaining = {
     size2: 1
 }
 const createNote = {
-    str: "",
-    goal: "Insert incredibly long text here that isn't offensive like the last"
+    strs: {},
+    goals: {
+        [0]: "Here's your chance", 
+        [1]: "to create and edit",
+        [2]: "backgrounds and",
+        [3]: "fighters!",
+        [4]: "    ",
+        [5]: "Fighter slots",
+        [6]: `remaining: ${-1}`
+    },
 }
 let flamenum = 0
 let lastFlame = 0
@@ -81,38 +92,14 @@ new Button("versus", undefined, "modeselect", "vsbutton.png", undefined, { // vs
     highlight: {x: 104, y: 128, w: 112, h: 112},
     locked: {x: 216, y: 128, w: 112, h: 112}
 }, (cenX - 280), cenY, function() {
-    stopSound("title.mp3")
-
-    MODE = 2
-    menu = "loading"
-    nextMenu = null
-    setTimeout(function() {
-        loadingComplete = true
-        initializeGame(500)
-    }, 2000)
-
-    blackTrans.val = 0
-    Animators.blackout.play()
+    loadGame(2)
 })
 new Button("survival", undefined, "modeselect", "survivalbutton.png", undefined, { // vs button
     idle: {x: 104, y: 16, w: 112, h: 112},
     select: {x: 216, y: 16, w: 112, h: 112},
     highlight: {x: 104, y: 128, w: 112, h: 112},
     locked: {x: 216, y: 128, w: 112, h: 112}
-}, (cenX + 56), cenY, function() {
-    stopSound("title.mp3")
-
-    MODE = 1
-    menu = "loading"
-    nextMenu = null
-    setTimeout(function() {
-        loadingComplete = true
-        initializeGame(500)
-    }, 2000)
-
-    blackTrans.val = 0
-    Animators.blackout.play()
-})
+}, (cenX + 56), cenY, loadGame)
 new Button("modeback", undefined, "modeselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
     x: 0, y: 0, w: 78, h: 28
 }, 50, (h - 100), function() {
@@ -123,10 +110,12 @@ new Button("createselectback", undefined, "createselect", {idle: "smallbutton.pn
 }, (cenX + 50), (h - 250), function() {
     Animators.blackin.play()
     setTimeout(function() {
+        createNote.strs = {}
         menu = "title"
         Animators.blackout.play()
     }, 1000)
 }, {text: "Back", font: "Nitro", size: 40})
+//new Button("")
 
 let curSelected = getButton("battle")
 curSelected.state = "select"
@@ -163,9 +152,19 @@ let a2 // represents P2.alive for vs results
 
 // Event Listeners
 document.addEventListener("keydown", keypress)
+document.addEventListener("keyup", keyup)
+
+function keyup(event) {
+    const key = event.keyCode
+
+    if (downKeys[key]) downKeys[key] = false
+}
 
 function keypress(event) {
     const key = event.keyCode
+
+    if (downKeys[key]) return
+    downKeys[key] = true
 
     if (menu) {
         if (key == KEYS.SPACE) {
@@ -198,9 +197,26 @@ function keypress(event) {
     }
     else {
         if (key == KEYS.BACKSPACE) { // pause/unpause game
-            if (!forcePlay) {
-                gamePlaying = (!gamePlaying)
-                playSound((((!gamePlaying) && "pause") || "resume") + ".wav", true) 
+            if (gameStarted) {
+                gamePaused = (!gamePaused)
+
+                if (gamePaused) {
+                    playSound("pause.wav", true)
+                    for (const t of Timers) { // stop active timers
+                        if (t.active) {
+                            t.stop()
+                            prePauseTimers[(t.duration - (NOW - t.began))] = t
+                        }
+                    }
+                }
+                else { // resume pre-pause timers
+                    playSound("resume.wav", true)
+                    for (const i in prePauseTimers) {
+                        console.log(`last: ${prePauseTimers[i].lastDur} new: ${i}`)
+                        prePauseTimers[i].start(i)
+                    }
+                    prePauseTimers = {} // clear memory
+                }
             }
         }
     }
@@ -212,6 +228,7 @@ function keypress(event) {
 * frame: animates a sprite sheet
 * flashframe: animates a sprite sheet, but flashes the frame (specific usage*)
 * tween: animates properties of an object
+* typeout: animates a string, letter by letter
 */
 
 new Animator("enemies", "tween", 200, 1, { obj: enemiesBubble, prop: { size: 1 } }, enemiesCallback)
@@ -229,6 +246,23 @@ new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: 
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
 new Animator("loading", "frame", 1000, 1, { goal: 7 })
 new Animator("createnote", "typeout", 3000, 1, { obj: createNote, snd: "text.wav" })
+
+function loadGame(m = 1) {
+    stopSound("title.mp3")
+
+    MODE = m
+
+    menu = "loading"
+    nextMenu = null
+
+    setTimeout(function() {
+        loadingComplete = true
+        initializeGame(500)
+    }, 2000)
+
+    blackTrans.val = 0
+    Animators.blackout.play()
+}
 
 function determinePoints() { // determines number of points (intended to be used after round, survival only), max is 200 points, min is 1 point
     if (hpStatic <= 0) return 0 // Force 0 if player is dead, no point calculating
@@ -320,8 +354,8 @@ function singlePlayerIntro(cb) {
 
         setTimeout(function () {
             playSound("go.wav")
-            gamePlaying = true
-            forcePlay = false
+            gameStarted = true
+            gameControls = true
             Animators.attack.play()
         }, 1050)
     }
@@ -333,8 +367,8 @@ function versusIntro() {
 
     setTimeout(function () {
         playSound("go.wav")
-        gamePlaying = true
-        forcePlay = false
+        gameStarted = true
+        gameControls = true
         Animators.attack.play()
     }, 1050)
 }
@@ -343,11 +377,14 @@ function initializeGame(delay) {
     // (re)set some game variables
     bg0x = 0
     bg1x = w
-    forcePlay = true // to avoid weird fighter bugs w/ no updating
+    gamePaused = false // a 'just in case' moment
+    gameControls = false
 
-    if (MODE == 1) { // singleplayer
-        P1 = new Fighter(cenX, (FLOOR - 258), 1)
+    const SINGLE = (MODE == 1)
+    P1 = new Fighter(((SINGLE) && cenX) || 100, (FLOOR - 258), 1)
+    P1.update()
 
+    if (SINGLE) { // singleplayer
         distSinceLastGuy = 0
         lastGuySpawned = 0
         globalThis.enemiesRemaining = 100
@@ -358,8 +395,8 @@ function initializeGame(delay) {
         }, delay || 1)
     }
     else {
-        P1 = new Fighter(100, (FLOOR - 258), 1)
         P2 = new Fighter((w - 250), (FLOOR - 258), 2, "left")
+        P2.update()
 
         versusIntro()   
     }
@@ -397,7 +434,7 @@ function update() {
 
         const SINGLE = (MODE == 1)
 
-        if (gamePlaying) {
+        if (gameStarted) {
             // Single player NPCS
 
             if (SINGLE) {
@@ -424,7 +461,7 @@ function update() {
         // Handle fighters
 
         for (const a of Fighters) {
-            if (gamePlaying || forcePlay) {
+            if ((gameStarted) && !gamePaused) {
                 if (a.plr) {
                     if (a.grounded && !a.t.attack.active && !a.t.stun.active) a.setBaseState()
                 }
@@ -464,33 +501,38 @@ function update() {
             }
         }
 
-        if (gamePlaying) {
+        if (gameStarted) {
             // Handle hitboxes
             let fakeHitboxes = cloneArray(Hitboxes) // need to clone the array so that it doesn't visually affect the hitboxes
             for (const h of fakeHitboxes) {
-                for (const a of Fighters) { // check fighter collisions
-                    if (a.alive) { // only consider alive fighters
-                        const col = h.check(a)
+                if (!gamePaused) {
+                    for (const a of Fighters) { // check fighter collisions
+                        if (a.alive) { // only consider alive fighters
+                            const col = h.check(a)
 
-                        if (col) { // found a collision
-                            a.onDamage(h.dmg)
+                            if (col) { // found a collision
+                                a.onDamage(h.dmg)
 
-                            if (h.type == "fireball") h.remove() // always destroy fireballs on contact, others can be used to hit multiple fighters
-                            break
+                                if (h.type == "fireball") h.remove() // always destroy fireballs on contact, others can be used to hit multiple fighters
+                                break
+                            }
                         }
                     }
-                }
 
-                if (h.type == "fireball") { // check if fireball collides with other fireballs
-                    Hitboxes.forEach(h1 => {
-                        if (h1 != h && ((h1.type == h.type) && h.check(h1))) { // remove if this is the case
-                            h.remove()
-                            h1.remove()
-                        }
-                    })
-                }
+                    if (h.type == "fireball") { // check if fireball collides with other fireballs
+                        Hitboxes.forEach(h1 => {
+                            if (h1 != h && ((h1.type == h.type) && h.check(h1))) { // remove if this is the case
+                                h.remove()
+                                h1.remove()
+                            }
+                        })
+                    }
 
-                h.update() // queue physics update
+                    h.update() // queue physics update
+                }
+                else {
+                    h.draw()
+                }
             }
             fakeHitboxes = null
         }
@@ -548,9 +590,8 @@ function update() {
 
             if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
 
-            if (!P1.alive || ((enemiesRemaining <= 0)) && gamePlaying) {
-                gamePlaying = false
-                forcePlay = true
+            if (!P1.alive || ((enemiesRemaining <= 0)) && gameStarted) {
+
 
                 if (P1.alive) { // player has won
                     playSound("victory.mp3")
@@ -586,9 +627,8 @@ function update() {
             // get who's alive
             a1 = P1.alive
             a2 = P2.alive
-            if ((!a1 || !a2) && gamePlaying) {
-                gamePlaying = false
-                forcePlay = true
+            if ((!a1 || !a2) && gameControls) {
+                gameControls = false
                 
                 let delay = 2000
 
@@ -605,6 +645,7 @@ function update() {
                 
                 // queue results after player celebrates
                 setTimeout(function() {
+                    gameStarted = false
                     menu = "vsresults"
                     Animators.blackout.play()        
                 }, (delay + 2000))
@@ -616,7 +657,7 @@ function update() {
         }
 
         // Handle 'pause' text
-        if (!gamePlaying && !forcePlay) img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 25), 177, 45)
+        if (gameStarted && gamePaused) img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 25), 177, 45)
 
         if (DEBUG) { // round debug info
             fstyle("red")
@@ -636,7 +677,7 @@ function update() {
     }
     else { // Handle menus
         if (menu == "title") {
-            SoundMemory["title.mp3"].play()
+            playSound("title.mp3")
 
             fstyle("black")
 
@@ -789,8 +830,8 @@ function update() {
                     img(ImageMemory["1pfacewin.png"], 0, 0, 128, 128, 50, 50, 512, 512)
                     img(ImageMemory["winner.png"], 0, 0, 100, 27, 100, 25, 200, 54) // TODO: cycle animation
 
-                    img(ImageMemory["2pfacelose.png"], 0, 0, 128, 128, (w - 512), (h - 512), 512, 512)
-                    img(ImageMemory["loser.png"], 0, 0, 103, 68, (w - 206), (h - 272), 206, 136) // TODO: shake animation
+                    img(ImageMemory["2pfacelose.png"], 0, 0, 128, 128, (w - 512), (cenY - 256), 512, 512)
+                    img(ImageMemory["loser.png"], 0, 0, 103, 68, (w - 206), (cenY - 272), 206, 136) // TODO: shake animation
                 }
                 else { // p2 win
                     img(ImageMemory["2pfacewin.png"], 0, 0, 128, 128, (w - 50), (h - 50), 512, 512)
@@ -872,15 +913,20 @@ function update() {
             text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || ((curSelected.name == "survival")) && "Defeat 100 enemies and show you rock!" || "Return to the title screen", cenX, (h - 50))
         }
         else if (menu == "createselect") {
+            stopSound("title.mp3")
+
             img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
-            Animators.createnote.play()
+
+            // if blank, play the animation
+            if (!createNote.strs) createNote.strs = {}
+            if (adtLen(createNote.strs) == 0) Animators.createnote.play()
 
             CTX.textAlign = "left"
 
             fstyle("black")
             font("30px Humming")
 
-            text(createNote.str, 50, 200)
+            for (let i = 0; (i < adtLen(createNote.strs)); i++) text(createNote.strs[i], 50, (200 + (i * 64)))
         }
 
         // load any buttons here
@@ -937,9 +983,9 @@ function start() {
     setTimeout(function() { // stop 'loading' after a random time
         loadingComplete = true
     }, randInt(1000, 3000))
-    document.removeEventListener("mousedown", start) // rid the event listener
+    CANVAS.removeEventListener("mousedown", start) // rid the event listener
 }
 
-document.addEventListener("mousedown", start)
+CANVAS.addEventListener("mousedown", start)
 
 export default { gamePlaying }
