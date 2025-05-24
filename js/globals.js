@@ -23,14 +23,17 @@ export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
 
 export const Live = (document.URL.includes("passionyte.github.io"))
-if (!Live) document.title = `[DEV] ${document.title}`
-
 export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
 
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export const VERSION = "alpha 0.2.5" + ((!Live) && " DEV")
+export let VERSION = "alpha 0.2.6"
+
+if (!Live) {
+    document.title = `[DEV] ${document.title}`
+    VERSION += " DEV"
+}
 
 export function clearCanvas() {
     CTX.clearRect(0, 0, w, h)

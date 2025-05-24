@@ -211,10 +211,7 @@ function keypress(event) {
                 }
                 else { // resume pre-pause timers
                     playSound("resume.wav", true)
-                    for (const i in prePauseTimers) {
-                        console.log(`last: ${prePauseTimers[i].lastDur} new: ${i}`)
-                        prePauseTimers[i].start(i)
-                    }
+                    for (const i in prePauseTimers) prePauseTimers[i].start(i)
                     prePauseTimers = {} // clear memory
                 }
             }
@@ -988,4 +985,4 @@ function start() {
 
 CANVAS.addEventListener("mousedown", start)
 
-export default { gamePlaying }
+export default { gamePaused }
