@@ -3,7 +3,8 @@
 'use strict'
 
 import {
-    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, fstyle, VERSION, adtLen
+    CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
+    fstyle, VERSION, adtLen, d
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -12,6 +13,7 @@ import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
 import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
+import { Notes } from "./notes.js"
 
 let NOW = performance.now()
 let frame_time = NOW
@@ -52,15 +54,7 @@ const eRemaining = {
 }
 const createNote = {
     strs: {},
-    goals: {
-        [0]: "Here's your chance", 
-        [1]: "to create and edit",
-        [2]: "backgrounds and",
-        [3]: "fighters!",
-        [4]: "    ",
-        [5]: "Fighter slots",
-        [6]: `remaining: ${-1}`
-    },
+    goals: Notes.createselect
 }
 let flamenum = 0
 let lastFlame = 0
@@ -104,18 +98,82 @@ new Button("modeback", undefined, "modeselect", {idle: "smallbutton.png", select
     x: 0, y: 0, w: 78, h: 28
 }, 50, (h - 100), function() {
     menu = "title"
-}, {text: "Back", font: "Nitro", size: 40})
+}, {text: "Back", font: "Humming", size: 30})
 new Button("createselectback", undefined, "createselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
     x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 250), function() {
+}, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
     setTimeout(function() {
         createNote.strs = {}
         menu = "title"
         Animators.blackout.play()
     }, 1000)
-}, {text: "Back", font: "Nitro", size: 40})
-//new Button("")
+}, {text: "Back", font: "Humming", size: 30})
+new Button("newfighter", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
+undefined, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 125, function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        createNote.strs = {}
+        menu = "fighternext"
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Make a new fighter!", font: "Humming", size: 28})
+new Button("editfighter", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
+undefined, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 275, function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // open the fighter edit menu...
+        createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Edit a fighter!", font: "Humming", size: 28})
+new Button("createbg", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
+undefined, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 425, function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // open background menu
+        createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Create background!", font: "Humming", size: 28})
+new Button("webcam", undefined, "fighternext", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
+undefined, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), (cenY - 250), function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // take pics to make fighter
+                createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Web Cam", font: "Humming", size: 28})
+new Button("upload", undefined, "fighternext", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
+undefined, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), (cenY - 50), function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // upload pics to make fighter
+        createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Upload", font: "Humming", size: 28})
+new Button("fighternextback", undefined, "fighternext", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        createNote.strs = {}
+        menu = "createselect"
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Back", font: "Humming", size: 30})
 
 let curSelected = getButton("battle")
 curSelected.state = "select"
@@ -183,7 +241,7 @@ function keypress(event) {
                     if (b.state != "locked") {
                         if (selectNew(dir, selB, curSelected, b)) {
                             selB = b
-                            break
+                            //break
                         }
                     }
                 }
@@ -243,6 +301,22 @@ new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: 
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
 new Animator("loading", "frame", 1000, 1, { goal: 7 })
 new Animator("createnote", "typeout", 3000, 1, { obj: createNote, snd: "text.wav" })
+
+function queueNote() {
+     // if blank, play the animation
+    if (!createNote.strs) createNote.strs = {}
+    if (adtLen(createNote.strs) == 0) {
+        createNote.goals = Notes[menu] || Notes.na
+        Animators.createnote.play()
+    }
+
+    CTX.textAlign = "left"
+
+    fstyle("black")
+    font("30px Humming")
+
+    for (let i = 0; (i < adtLen(createNote.strs)); i++) text(createNote.strs[i], 50, (200 + (i * 64)))
+}
 
 function loadGame(m = 1) {
     stopSound("title.mp3")
@@ -398,6 +472,10 @@ function initializeGame(delay) {
         versusIntro()   
     }
 }
+
+import { Camera } from "./camera.js"
+const c = new Camera()
+c.init()
 
 function update() {
     requestAnimationFrame(update)
@@ -855,12 +933,11 @@ function update() {
             if (!lAnim.playing) lAnim.play()
 
             img(ImageMemory[`load${((lAnim.times > -1) && lAnim.times) || 0}.png`], 0, 0, 512, 256, 25, 75, w, 600)
-            const dots = ((lAnim.times > 6) && "..." || (lAnim.times > 4) && ".." || (lAnim.times > 2) && ".") || "" // determine number of dots
 
             fstyle("rgb(255, 166, 0)")
             font("16px Humming")
             CTX.textAlign = "center"
-            text(`Reading${dots}`, (cenX + 20), (cenY + 5))
+            text(`Reading...`, (cenX + 20), (cenY + 5))
 
             if (!loadingComplete) { // continue loading
                 if (!SoundMemory["loading.wav"].playing) playSound("loading.wav")
@@ -914,16 +991,12 @@ function update() {
 
             img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
-            // if blank, play the animation
-            if (!createNote.strs) createNote.strs = {}
-            if (adtLen(createNote.strs) == 0) Animators.createnote.play()
+            queueNote()
+        }
+        else if (menu == "fighternext") {
+            img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
-            CTX.textAlign = "left"
-
-            fstyle("black")
-            font("30px Humming")
-
-            for (let i = 0; (i < adtLen(createNote.strs)); i++) text(createNote.strs[i], 50, (200 + (i * 64)))
+            queueNote()
         }
 
         // load any buttons here
@@ -965,6 +1038,11 @@ function update() {
         text("debug mode", 20, 40)
         text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80)
     }
+
+    /*fstyle("red")
+    font("20px Humming")
+    text("! Hi, this is NOT being saved. Don't worry. PLEASE. !", w - 300, h - 410)
+    c.draw(CTX, cenX, cenY, 600, 400)*/
 }
 
 // Handle initial prompt screen (we need this for audio to work)

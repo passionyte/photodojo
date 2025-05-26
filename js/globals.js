@@ -11,6 +11,8 @@ export function d(id) {
 }
 
 export const CANVAS = d("CANVAS")
+export const VIDEO = d("feed")
+export const helperCANVAS = d("helper")
 
 export const w = CANVAS.clientWidth
 export const h = CANVAS.clientHeight
@@ -18,6 +20,7 @@ export const cenX = (w / 2)
 export const cenY = (h / 2)
 
 export const CTX = CANVAS.getContext("2d")
+export const helperCTX = helperCANVAS.getContext("2d")
 
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
@@ -28,7 +31,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.2.6"
+export let VERSION = "alpha 0.3.0"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`

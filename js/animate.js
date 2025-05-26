@@ -114,6 +114,9 @@ export class Animator {
         let dur = customInt
 
         const t = (this.type == "tween") // convenience
+        const to = (this.type == "typeout")
+
+        if (to) this.textGoals = this.textObj.goals
 
         if (!dur) {
             // set dur if not custom
@@ -123,15 +126,15 @@ export class Animator {
             else if (this.type == "tween") {
                 dur = 1
             }
-            else if (this.type == "typeout") {
-                dur = (this.duration / (tLen(this.textGoals) * 3))
+            else if (to) {
+                dur = (this.duration / tLen(this.textGoals))
             }
             else {
                 dur = this.duration // default duration
             }
         }
 
-        if (t || (this.type == "typeout")) {
+        if (t || (to)) {
             this.start = performance.now()
 
             if (t) {
@@ -166,6 +169,7 @@ export class Animator {
                 else {
                     this.times = -1
                     this.lineTarg = 0
+                    this.textGoals = null
                 }
                 
                 this.start = -1
@@ -204,7 +208,6 @@ export class Animator {
         else if (this.type == "typeout") {
             this.times = 0
             this.lineTarg = 0
-            this.textGoals = dat.obj.goals || dat.goals
             this.textObj = dat.obj
             this.typeSound = dat.snd
         }

@@ -50,3 +50,10 @@ binds -> Bind {
                 key = # 
                 action = function (or undefined)
             }
+
+CAMERA
+
+Hide a video frame streaming from the web cam of the user's device (if exists), behind the canvas and stream it *into* the canvas, wherever desired.
+For photos, simply grab a still frame (src of vid?) on input, and play a fancy noise... if we want.
+If user does not have a web cam, don't worry, that's fine. We will add a indicator for it later, and will always prompt the user before using the camera.
+Photos for fighters and backgrounds, etc. will be stored in localStorage as per everything else. 

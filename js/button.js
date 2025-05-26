@@ -118,7 +118,7 @@ export function selectNew(d, c, o, n) { // compare the 'candidate', old and new 
         result = ((n.y < o.y) && (!c || (n.y > c.y)))
     }
     else if (d == "DOWN") {
-        result = ((n.y > o.y) && (!c || (n.y > c.y)))
+        result = ((n.y > o.y) && (!c || (n.y < c.y)))
     }
 
     return result
