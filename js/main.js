@@ -473,9 +473,10 @@ function initializeGame(delay) {
     }
 }
 
-import { Camera } from "./camera.js"
+// CAM TEST
+/*import { Camera } from "./camera.js"
 const c = new Camera()
-c.init()
+c.init()*/
 
 function update() {
     requestAnimationFrame(update)
@@ -981,7 +982,6 @@ function update() {
             text(".js", (cenX + 175), (cenY - 150))
 
             font("24px Humming")
-            //text(VERSION, cenX, (cenY - 100))
 
             fstyle("black")
             text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || ((curSelected.name == "survival")) && "Defeat 100 enemies and show you rock!" || "Return to the title screen", cenX, (h - 50))

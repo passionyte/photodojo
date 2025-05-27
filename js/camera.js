@@ -77,6 +77,7 @@ export class Camera {
     constructor(v = VIDEO, helper = helperCANVAS, w = 600, h = 400) {
         this.video = v
         this.helper = helper
+        this.helperCTX = helper.getContext("2d") || helperCTX
         this.width = w
         this.height = h
     }
