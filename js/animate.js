@@ -213,9 +213,9 @@ export class Animator {
         }, ((!force) && this.clearTime) || 1)
     }
 
-    constructor(n = "animator", t, d = 1000, ct = 1, dat, cb) {
+    constructor(n, t, d = 1000, ct = 1, dat, cb) {
         if (!t) {
-            console.error(`Animator: New animator of name '${n}' failed to create; missing or unknown type '${t}'.`)
+            console.error(`Animator: New animator of name '${n || "Unknown"}' failed to create; missing or unknown type '${t}'.`)
             return
         }
 
@@ -249,7 +249,8 @@ export class Animator {
         this.tick = this.tick.bind(this)
         this.stop = this.stop.bind(this)
 
-        Animators[n] = this
+        // if a name doesn't exist, we don't want to store this.
+        if (n) Animators[n] = this
     }
 }
 

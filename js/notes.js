@@ -33,6 +33,14 @@ export const Notes = {
         [5]: "  ",
         [6]: "Edit it as you desire!"
     },
+    createbg: {
+        [0]: "To save a new",
+        [1]: "background or",
+        [2]: "retake the photo",
+        [3]: "of an existing",
+        [4]: "background,",
+        [5]: "tap any slot."
+    },
     na: {
         [0]: "No information is",
         [1]: "available for this menu."
@@ -44,6 +52,13 @@ export const modeDescriptions = {
     survival: "Defeat 100 enemies and show you rock!",
     modeback: "Return to the title screen",
     na: "Select a mode"
+}
+
+export const menuTitles = {
+    createselect: "Create main menu",
+    fighternext: "Capture type",
+    uploadsel: "Upload type",
+    createbg: "Create background"
 }
 
 export default { Notes }
