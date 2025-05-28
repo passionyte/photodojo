@@ -44,3 +44,13 @@ a {
 .bottommed {
     margin-bottom: 2vw;
 }
+
+.camera {
+    width: 600px;
+    height: 400px;
+    z-index: -100000;
+    position: absolute;
+}
+.camera canvas {
+    display: none;
+}

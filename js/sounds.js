@@ -60,5 +60,9 @@ newSound(true, "select.wav")
 newSound(true, "pause.wav")
 newSound(true, "resume.wav")
 newSound(true, "text.wav")
+newSound(true, "titlebutton.wav")
+newSound(true, "titlecancel.wav")
+newSound(true, "createbutton.wav")
+newSound(true, "createcancel.wav")
 
 export default { SoundMemory }
