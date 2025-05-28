@@ -13,7 +13,7 @@ import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
 import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
-import { Notes } from "./notes.js"
+import { Notes, modeDescriptions } from "./notes.js"
 
 let NOW = performance.now()
 let frame_time = NOW
@@ -60,19 +60,21 @@ let flamenum = 0
 let lastFlame = 0
 
 // UI Buttons
-new Button("battle", undefined, "title", "battlebutton.png", undefined, { // Head Into Battle button
-    idle: {x: 104, y: 16, w: 112, h: 112},
-    select: {x: 216, y: 16, w: 112, h: 112},
-    highlight: {x: 104, y: 128, w: 112, h: 112},
-    locked: {x: 216, y: 128, w: 112, h: 112}
+
+// title screen
+new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, { // Head Into Battle button
+    i: {x: 104, y: 16, w: 112, h: 112},
+    s: {x: 216, y: 16, w: 112, h: 112},
+    p: {x: 104, y: 128, w: 112, h: 112},
+    l: {x: 216, y: 128, w: 112, h: 112}
 }, (cenX + 56), cenY, function() {
     menu = "modeselect"
 })
-new Button("create", undefined, "title", "createbutton.png", undefined, { // create button
-    idle: {x: 104, y: 16, w: 112, h: 112},
-    select: {x: 216, y: 16, w: 112, h: 112},
-    highlight: {x: 104, y: 128, w: 112, h: 112},
-    locked: {x: 216, y: 128, w: 112, h: 112}
+new Button("create", "title", "createbutton.png", {press: "titlebutton.wav"}, { // create button
+    i: {x: 104, y: 16, w: 112, h: 112},
+    s: {x: 216, y: 16, w: 112, h: 112},
+    p: {x: 104, y: 128, w: 112, h: 112},
+    l: {x: 216, y: 128, w: 112, h: 112}
 }, (cenX - 280), cenY, function() {
     Animators.blackin.play()
     setTimeout(function() {
@@ -80,26 +82,28 @@ new Button("create", undefined, "title", "createbutton.png", undefined, { // cre
         Animators.blackout.play()
     }, 1000)
 })
-new Button("versus", undefined, "modeselect", "vsbutton.png", undefined, { // vs button
-    idle: {x: 104, y: 16, w: 112, h: 112},
-    select: {x: 216, y: 16, w: 112, h: 112},
-    highlight: {x: 104, y: 128, w: 112, h: 112},
-    locked: {x: 216, y: 128, w: 112, h: 112}
+// mode select
+new Button("versus", "modeselect", "vsbutton.png", undefined, { // vs button
+    i: {x: 104, y: 16, w: 112, h: 112},
+    s: {x: 216, y: 16, w: 112, h: 112},
+    p: {x: 104, y: 128, w: 112, h: 112},
+    l: {x: 216, y: 128, w: 112, h: 112}
 }, (cenX - 280), cenY, function() {
     loadGame(2)
 })
-new Button("survival", undefined, "modeselect", "survivalbutton.png", undefined, { // vs button
-    idle: {x: 104, y: 16, w: 112, h: 112},
-    select: {x: 216, y: 16, w: 112, h: 112},
-    highlight: {x: 104, y: 128, w: 112, h: 112},
-    locked: {x: 216, y: 128, w: 112, h: 112}
+new Button("survival", "modeselect", "survivalbutton.png", undefined, { // vs button
+    i: {x: 104, y: 16, w: 112, h: 112},
+    s: {x: 216, y: 16, w: 112, h: 112},
+    p: {x: 104, y: 128, w: 112, h: 112},
+    l: {x: 216, y: 128, w: 112, h: 112}
 }, (cenX + 56), cenY, loadGame)
-new Button("modeback", undefined, "modeselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+new Button("modeback", "modeselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "titlecancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, 50, (h - 100), function() {
     menu = "title"
 }, {text: "Back", font: "Humming", size: 30})
-new Button("createselectback", undefined, "createselect", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+// create select
+new Button("createselectback", "createselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
@@ -109,8 +113,8 @@ new Button("createselectback", undefined, "createselect", {idle: "smallbutton.pn
         Animators.blackout.play()
     }, 1000)
 }, {text: "Back", font: "Humming", size: 30})
-new Button("newfighter", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
-undefined, {
+new Button("newfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
     Animators.blackin.play()
@@ -120,8 +124,8 @@ undefined, {
         Animators.blackout.play()
     }, 1000)
 }, {text: "Make a new fighter!", font: "Humming", size: 28})
-new Button("editfighter", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
-undefined, {
+new Button("editfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 275, function() {
     Animators.blackin.play()
@@ -131,40 +135,85 @@ undefined, {
         Animators.blackout.play()
     }, 1000)
 }, {text: "Edit a fighter!", font: "Humming", size: 28})
-new Button("createbg", undefined, "createselect", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
-undefined, {
+new Button("createbg", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 425, function() {
     Animators.blackin.play()
     setTimeout(function() {
-        // open background menu
+        menu = "createbg"
         createNote.strs = {}
         Animators.blackout.play()
     }, 1000)
 }, {text: "Create background!", font: "Humming", size: 28})
-new Button("webcam", undefined, "fighternext", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
-undefined, {
+// fighter photo type
+new Button("webcam", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), (cenY - 250), function() {
+}, (cenX + 100), 125, function() {
     Animators.blackin.play()
     setTimeout(function() {
         // take pics to make fighter
-                createNote.strs = {}
+        createNote.strs = {}
         Animators.blackout.play()
     }, 1000)
 }, {text: "Web Cam", font: "Humming", size: 28})
-new Button("upload", undefined, "fighternext", {idle: "largebutton.png", select: "largebuttonsel.png", highlight: "largebuttonpress.png"}, 
-undefined, {
+new Button("upload", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), (cenY - 50), function() {
+}, (cenX + 100), 275, function() {
     Animators.blackin.play()
     setTimeout(function() {
-        // upload pics to make fighter
+        menu = "uploadsel"
         createNote.strs = {}
         Animators.blackout.play()
     }, 1000)
 }, {text: "Upload", font: "Humming", size: 28})
-new Button("fighternextback", undefined, "fighternext", {idle: "smallbutton.png", select: "smallbuttonsel.png", highlight: "smallbuttonpress.png"}, undefined, {
+new Button("fighternextback", "fighternext", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        createNote.strs = {}
+        menu = "createselect"
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Back", font: "Humming", size: 30})
+// upload image selection
+new Button("individual", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 125, function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // upload pics to make fighter!
+        createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Individual", font: "Humming", size: 28})
+new Button("template", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 275, function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        // upload template to make fighter!
+        createNote.strs = {}
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Template", font: "Humming", size: 28})
+new Button("uploadselback", "uploadsel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    Animators.blackin.play()
+    setTimeout(function() {
+        createNote.strs = {}
+        menu = "fighternext"
+        Animators.blackout.play()
+    }, 1000)
+}, {text: "Back", font: "Humming", size: 30})
+// create bg
+new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
@@ -176,14 +225,13 @@ new Button("fighternextback", undefined, "fighternext", {idle: "smallbutton.png"
 }, {text: "Back", font: "Humming", size: 30})
 
 let curSelected = getButton("battle")
-curSelected.state = "select"
+curSelected.state = "s"
 
 // SINGLE PLAYER VARIABLES
 
 // Enemy Spawning
 let distSinceLastGuy = 0
 let lastGuySpawned = 0
-const distBetweenGuys = (w / 2)
 globalThis.enemiesRemaining = 100
 
 // Results
@@ -226,11 +274,12 @@ function keypress(event) {
 
     if (menu) {
         if (key == KEYS.SPACE) {
-            if (curSelected && (menu == curSelected.menu)) {
+            if (curSelected && (menu == curSelected.menu) && (curSelected.canpress)) { // push the button
+                curSelected.canpress = false
                 curSelected.press()
             }
         }
-        else {
+        else { // Button navigation based on WASD keys
             const dir = ((key == KEYS.A) && "LEFT") || ((key == KEYS.D) && "RIGHT") || ((key == KEYS.W) && "UP") || ((key == KEYS.S) && "DOWN")
             
             if (dir) {
@@ -239,14 +288,13 @@ function keypress(event) {
                 let selB
                 for (const b of mB) {
                     if (b.state != "locked") {
-                        if (selectNew(dir, selB, curSelected, b)) {
+                        if (selectNew(dir, selB, curSelected, b)) { // compare x or y differences based on direction
                             selB = b
-                            //break
                         }
                     }
                 }
-                if (selB) {
-                    curSelected.state = "idle"
+                if (selB) { // set currently selected button to idle, then overwrite with new button and select it
+                    curSelected.state = "i"
                     curSelected = selB
                     selB.select()
                 }
@@ -300,22 +348,29 @@ new Animator("remaininggrow", "tween", 100, 1, { obj: eRemaining, prop: { size0:
 new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: { size2: 1 } })
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
 new Animator("loading", "frame", 1000, 1, { goal: 7 })
-new Animator("createnote", "typeout", 3000, 1, { obj: createNote, snd: "text.wav" })
+new Animator("createnote", "typeout", 2000, 1, { obj: createNote, snd: "text.wav" })
 
 function queueNote() {
-     // if blank, play the animation
-    if (!createNote.strs) createNote.strs = {}
-    if (adtLen(createNote.strs) == 0) {
-        createNote.goals = Notes[menu] || Notes.na
-        Animators.createnote.play()
+    const cnAnim = Animators.createnote
+
+    if (!createNote.strs) { // if null or undefined, set appropriately
+        createNote.strs = {}
     }
+    else if (!cnAnim.playing && (adtLen(createNote.strs) == 0)) { // if not playing and strs is blank, set goals and play
+        createNote.goals = Notes[menu] || Notes.na
+        cnAnim.play()
+    }
+    else { // else render
+        CTX.textAlign = "left"
 
-    CTX.textAlign = "left"
+        fstyle("black")
+        font("30px Humming")
 
-    fstyle("black")
-    font("30px Humming")
-
-    for (let i = 0; (i < adtLen(createNote.strs)); i++) text(createNote.strs[i], 50, (200 + (i * 64)))
+        for (let i = 0; (i < adtLen(createNote.strs)); i++) {
+            const c = createNote.strs[i]
+            if (c) text(c, 50, (200 + (i * 64)))
+        }
+    }
 }
 
 function loadGame(m = 1) {
@@ -427,6 +482,7 @@ function singlePlayerIntro(cb) {
             playSound("go.wav")
             gameStarted = true
             gameControls = true
+            timeStarted = NOW
             Animators.attack.play()
         }, 1050)
     }
@@ -440,6 +496,7 @@ function versusIntro() {
         playSound("go.wav")
         gameStarted = true
         gameControls = true
+        timeStarted = NOW
         Animators.attack.play()
     }, 1050)
 }
@@ -458,7 +515,7 @@ function initializeGame(delay) {
     if (SINGLE) { // singleplayer
         distSinceLastGuy = 0
         lastGuySpawned = 0
-        globalThis.enemiesRemaining = 100
+        globalThis.enemiesRemaining = 1//100
 
         setTimeout(function () {
             singlePlayerIntro()
@@ -515,7 +572,7 @@ function update() {
 
             if (SINGLE) {
                 if (enemiesRemaining > 0) {
-                    if (P1.left > (distSinceLastGuy + (distBetweenGuys - randInt(0, 200)))) { // if we are far enough from the last enemy
+                    if (P1.left > (distSinceLastGuy + ((w / 2) - randInt(0, 200)))) { // if we are far enough from the last enemy
                         let amt = 1
 
                         if (enemiesRemaining > 3) amt = randInt(1, 3) // Ensures that we don't generate enemies after the remaining number reaches 0
@@ -666,8 +723,8 @@ function update() {
 
             if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
 
-            if (!P1.alive || ((enemiesRemaining <= 0)) && gameStarted) {
-
+            if (!P1.alive || ((enemiesRemaining <= 0)) && gameStarted && gameControls) {
+                gameControls = false
 
                 if (P1.alive) { // player has won
                     playSound("victory.mp3")
@@ -780,8 +837,6 @@ function update() {
             text("Passionyte 2025", cenX, (h - 50))
 
             fstyle("yellow")
-            text(".js", (cenX + 175), (cenY - 150))
-
             font("24px Humming")
             text(VERSION, cenX, (cenY - 100))
         }
@@ -978,13 +1033,9 @@ function update() {
             CTX.textAlign = "center"
             text("Mode Select", cenX, (cenY - 50))
 
-            font("30px Humming")
-            text(".js", (cenX + 175), (cenY - 150))
-
             font("24px Humming")
-
             fstyle("black")
-            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || ((curSelected.name == "versus") && "Have some chaotic fun with a friend!") || ((curSelected.name == "survival")) && "Defeat 100 enemies and show you rock!" || "Return to the title screen", cenX, (h - 50))
+            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || modeDescriptions[curSelected.name], cenX, (h - 50))
         }
         else if (menu == "createselect") {
             stopSound("title.mp3")
@@ -993,18 +1044,22 @@ function update() {
 
             queueNote()
         }
-        else if (menu == "fighternext") {
+        else if (menu == "fighternext" || menu == "uploadsel") {
             img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
             queueNote()
         }
+        else if (menu == "createbg") {
+            img(ImageMemory["createbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
+        }
 
         // load any buttons here
         for (const b of menuButtons(menu)) {
-            if (curSelected.menu != menu && (b.state != "locked")) { // Always select a button that is *not* locked from a new menu
-                curSelected.state = "idle"
+            if (curSelected.menu != menu && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
+                curSelected.state = "i"
                 curSelected = b
-                b.state = "select"
+                b.canpress = true
+                b.state = "s"
             }
             b.draw()
         }

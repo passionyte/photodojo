@@ -4,8 +4,6 @@
 
 import { VIDEO, helperCANVAS, helperCTX, DEBUG } from "./globals.js"
 
-export let cameraActive = false
-
 export class Camera {
     active = false
     width

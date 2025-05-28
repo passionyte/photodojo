@@ -54,7 +54,11 @@ export class Animator {
             this.times++
             if (this.type == "flashframe") this.flashing = (!this.flashing)
     
-            if (this.times >= this.timesGoal) this.stop() // reached our goal, end
+            // reached our goal, end
+            if (this.times >= this.timesGoal) {
+                this.stop()
+                return
+            }
         }
         else if (this.type == "tween") { // tweens properties of a object from point A to B
             this.time = (performance.now() - this.start)
@@ -76,15 +80,25 @@ export class Animator {
                 this.object[p] = v
             }
 
-            if (this.time >= this.duration) this.stop() // reached our goal, end
+            // reached our goal, end
+            if (this.time >= this.duration) {
+                this.stop() 
+                return
+            }
         }
         else if (this.type == "typeout") {
+            // force stop if goal(s) are missing
+            if (!this.textGoals) {
+                this.stop(true)
+                return
+            }
+
             if (this.times == -1) this.times = 0 // since 'this.times' is used in both frame and typeout it needs to be reset from -1 to 0 here
 
             const strs = this.textObj.strs
             const targGoal = this.textGoals[this.lineTarg]
 
-            if (!targGoal) { // Just in case we have a non-existant goal
+            if (!targGoal) { // once again just in case we have a *specific* missing goal, force stop
                 this.stop(true)
                 return
             }
@@ -92,21 +106,37 @@ export class Animator {
             if (!strs[this.lineTarg]) strs[this.lineTarg] = "" // another 'just in case', haha
 
             if (!strs[this.lineTarg].includes(targGoal)) {
-                strs[this.lineTarg] += targGoal[this.times] // add the next character to the string
-                if (this.typeSound) playSound(this.typeSound, true) // play sound if we have one
-                this.times++
+                const ch = targGoal[this.times] // character to add
+
+                if (!ch) {
+                    this.stop(true)
+                    return
+                }
+                else {
+                    strs[this.lineTarg] += ch // add it to the string
+                    if (this.typeSound && ((strs[this.lineTarg].length % 2) == 0)) playSound(this.typeSound, true) // play sound if we have one
+                    this.times++
+                }
+
             }
             else { // move to next line
                 this.lineTarg++
                 this.times = 0
 
-                if (this.lineTarg >= adtLen(this.textGoals)) this.stop(true) // reached our goal, end
+                if (this.lineTarg >= adtLen(this.textGoals)) this.stop() // reached our goal, end
             }
         }
     }
 
     play(customInt) { // start the animator
-        if (this.playing) return
+        if (this.playing) {
+            if (this.type == "typeout") {
+                this.stop(true)
+            }
+            else {
+                return
+            }
+        }
 
         this.playing = true
         this.ended = false
@@ -149,9 +179,10 @@ export class Animator {
 
     stop(force) { // (forcibly*) stop the animator
         this.playing = false
+        if (this.interval) clearInterval(this.interval)
 
         setTimeout(() => { // Reset everything we need to
-            if (this.interval) clearInterval(this.interval)
+            //if (this.interval) clearInterval(this.interval)
 
             // convenience variables
             const t = (this.type == "tween")
@@ -170,6 +201,8 @@ export class Animator {
                     this.times = -1
                     this.lineTarg = 0
                     this.textGoals = null
+
+                    if (force) this.textObj.strs = {} // issue encountered, clear strs
                 }
                 
                 this.start = -1

@@ -15,7 +15,7 @@ const genericSounds = { // default if no sound dictionary is provided
 
 export class Button {
     name
-    state // current state of the button (i.e. idle, pressed, selected)
+    state = "i" // current state of the button (i.e. i: idle, p: pressed, s: selected, h: highlighted)
     menu // menu the button belongs to
     position = {
         x: 0,   
@@ -26,10 +26,11 @@ export class Button {
     snds // button sounds (for being pressed or selected etc.)
     scale // image scale
     onpress // on press callback
+    canpress = true
     text // should be a dictionary containing text, font, size, etc. 'size' will only function if a font is given
 
     get sBounds() {
-        return this.bounds[this.state] || this.bounds.idle || this.bounds // default to idle if bounds for a given state don't exist or just bounds
+        return this.bounds[this.state] || this.bounds.i || this.bounds // default to idle if bounds for a given state don't exist or just bounds
     }
 
     get x() {
@@ -42,7 +43,7 @@ export class Button {
 
     doSound(n) { // helper to play sounds w/ checks
         if (this.snds) {
-            const s = this.snds[n]
+            const s = this.snds[n] || genericSounds[n]
 
             if (s) {
                 playSound(s, true)
@@ -51,7 +52,7 @@ export class Button {
     }
 
     draw() { // draw from state bounds and position
-        if (this.img.d) {
+        if (this.img.i) {
             img(this.img[this.state], this.sBounds.x, this.sBounds.y, this.sBounds.w, this.sBounds.h, this.x, this.y, (this.sBounds.w * this.scale), (this.sBounds.h * this.scale))
         }
         else {
@@ -68,22 +69,19 @@ export class Button {
 
     press() { // when the player activates the button
         this.doSound("press")
-        this.state = "highlight"
+        this.state = "p"
 
-        setTimeout(() => { // typically, the button will no longer be selected after this if the menu changes
-            this.state = "idle"//"select"
-            if (this.onpress) this.onpress()
-        }, 100)
+        setTimeout(this.onpress, 100)
     }
 
     select() { // when the player selects the button
         this.doSound("select")
-        this.state = "select"
+        this.state = "s"
+        this.canpress = true
     }
 
-    constructor(n, s = "idle", m, i, snds = genericSounds, b, x, y, onpress, text, scale = 2) {
+    constructor(n, m, i, snds = genericSounds, b, x, y, onpress, text, scale = 2) {
         this.name = n
-        this.state = s
         this.menu = m
         if (typeof(i) == "object") { // image per state
             this.img = {}

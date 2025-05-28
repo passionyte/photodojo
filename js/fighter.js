@@ -327,7 +327,13 @@ export class Fighter extends Object {
         let yDiff = (FLOOR - this.bottom)
         CTX.save()
         CTX.globalAlpha = (0.8 - (yDiff / 1600))
-        img(this.shadow, 0, 3, 32, 9, (this.absLeft - ((!this.lefty) && 16 || -16) - (yDiff / 8)), FLOOR, (this.width + (yDiff / 4)), (18 + (yDiff / 32)))
+
+        img(this.shadow, 0, 3, 32, 9, 
+            (this.absLeft - ((!this.lefty) && 16 || -16) - (yDiff / 8)), // x
+            FLOOR, // y
+            clamp((this.width + (yDiff / 4)), 0, (this.width * 2)), // width
+            clamp((18 + (yDiff / 32)), 0, (36)) // height
+        )
         CTX.restore()
         yDiff = null
 
