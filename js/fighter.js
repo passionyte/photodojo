@@ -7,6 +7,8 @@ import { MODE, initialLeft, gamePaused } from "./main.js"
 import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
 import { Controller } from "./controller.js"
+import { Particle } from "./particle.js"
+import { playSound } from "./sounds.js"
 
 export const defHP = 40 // default HP for fighters
 export const stateBounds = { // image boundaries for each state
@@ -27,6 +29,13 @@ const FireballBounds = { // image boundaries for the fireball
     y: 496,
     w: 220,
     h: 220,
+}
+
+const Bounds32 = { // image boundaries for the landing dust and hit
+    x: 0,
+    y: 0,
+    w: 32,
+    h: 32
 }
 
 const FighterTimers = { // What timers to create + duration
@@ -68,6 +77,10 @@ export class Hitbox extends Object {
 
                     if (col) {
                         this.hits.push(hit)
+
+                        // hit effect
+                        new Particle(this.absLeft, (this.top - 115), 0, 0, 96, 96, "hit", "hit.png", Bounds32, 200, {alpha: 0, sw: 96, sh: 96})
+
                         return true
                     }
                 }
@@ -214,7 +227,7 @@ export class Fighter extends Object {
 
         if (!this.t.stun.active || this.fallen) { // gravity handling
             if (!this.grounded) { // in air
-                if (this.state != "kick" && !this.fallen) this.state = "jump"
+                if (this.state != "kick" && this.state != "taunt" && this.state != "victory" && !this.fallen) this.state = "jump"
 
                 const diff = (this.position.y + GRAVITY)
 
@@ -222,12 +235,16 @@ export class Fighter extends Object {
 
                 if (diff >= floorPos && !this.ignoreGravity) { // land
                     if (!this.fallen) { // landing from a jump
-                        this.lastStep = performance.now()
+                        if (this.state != "taunt" && this.state != "victory") {
+                            this.lastStep = performance.now()
+                            this.t.attack.stop()
+                            this.marchLock = false
+                        }
 
-                        this.t.attack.stop()
-                        this.marchLock = false
                         this.position.y = floorPos
                         this.velocity.y = 0
+
+                        new Particle(this.absLeft, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
                     }
                     else { // landing while fallen over
                         if (this.bounces > 0) { // we need to bounce the player a bit
@@ -235,6 +252,8 @@ export class Fighter extends Object {
 
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
                             this.bounces--
+
+                            new Particle(this.absLeft, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
                         }
                         else { // end this
                             this.position.y = floorPos
@@ -248,10 +267,10 @@ export class Fighter extends Object {
                 }
             }
             else { // on ground, determine if fighter is marching
-                if (!this.marchLock && this.state != "hurt") {
+                if (!this.marchLock && this.state != "hurt" && this.state != "taunt" && this.state != "victory") {
                     this.state = ((this.velocity.x == 0) && "stance") || "march"
                 }
-            }
+            }false
 
             if (this.state == "crouch") this.velocity.x = 0 // shouldn't be able to move while crouching!
 
@@ -429,10 +448,10 @@ export class Fighter extends Object {
                     this.ignoreGravity = true
                     globalThis.enemiesRemaining--
                     
-                    if (globalThis.enemiesRemaining % 10 == 0 || globalThis.enemiesRemaining % 100 == 0) {
+                    if (globalThis.enemiesRemaining % 10 == 0 || globalThis.enemiesRemaining % 100 == 0) { // grow of all 3 nums
                         Animators.remaininggrow.play()
                     }
-                    else {
+                    else { // grow of last num
                         Animators.remainingsinglegrow.play()
                     }
 
@@ -476,7 +495,7 @@ export class Fighter extends Object {
         }
     }
 
-    fireball() {
+    fireball() { // shoot a fireball!
         if (this.grounded && this.canAttack) {
             this.marchLock = true
 
@@ -489,10 +508,12 @@ export class Fighter extends Object {
         }
     }
 
-    taunt() {
+    taunt() { // taunt the opponent(s)!
         if (this.grounded && this.canAttack) {
             this.marchLock = true
 
+            this.velocity.y = -4 // slight bounce
+            playSound("taunt.wav", true)
             this.state = "taunt"
 
             this.t.attack.start(1500)
@@ -501,7 +522,7 @@ export class Fighter extends Object {
         }
     }
 
-    victory() {
+    victory() { // strike a awesome victory pose!
         if (this.grounded) {
             this.marchLock = true
             
@@ -513,9 +534,12 @@ export class Fighter extends Object {
         }
     }
 
-    attack() {
-        if (this.grounded && this.velocity.x != 0) {
-            if (((!this.lefty) && this.velocity.x < 0) || ((this.lefty) && this.velocity.x > 0)) {
+    attack() { // helper for determining how to attack based on properties (called by controller)
+        const xv = this.velocity.x
+        const l = this.lefty
+
+        if (this.grounded && (xv != 0)) {
+            if (((!l) && (xv < 0)) || ((l) && (xv > 0))) {
                 this.fireball()
             }
             else {

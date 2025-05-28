@@ -28,6 +28,7 @@ export class Button {
     onpress // on press callback
     canpress = true
     text // should be a dictionary containing text, font, size, etc. 'size' will only function if a font is given
+    active = true // can be selected or pressed (overwrites all)
 
     get sBounds() {
         return this.bounds[this.state] || this.bounds.i || this.bounds // default to idle if bounds for a given state don't exist or just bounds
@@ -135,11 +136,11 @@ export function getButton(s) {
     return result
 }
 
-export function menuButtons(menu) {
+export function menuButtons(menu, layout) {
     let result = []
 
     for (const b of Buttons) {
-        if (b.menu == menu) {
+        if (b.menu == menu || b.menu == layout) {
             result.push(b)
         }
     }

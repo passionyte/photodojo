@@ -31,7 +31,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.3.2"
+export let VERSION = "alpha 0.3.5"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`

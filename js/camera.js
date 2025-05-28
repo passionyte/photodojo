@@ -17,7 +17,6 @@ export class Camera {
             // initialize the user's web cam as our source
             navigator.mediaDevices.getUserMedia({ video: true, audio: false })
             .then((stream) => {
-                console.log("initialized web cam")
                 this.video.srcObject = stream
                 this.video.play()
             })
@@ -61,10 +60,10 @@ export class Camera {
         if (!this.active) return
 
         try {
-            ctx.drawImage(this.video, 0, 0, this.width, this.height, x, y, w, h) 
+            ctx.drawImage(this.video, 0 + w/2, 0 + h/2, (w), (h), x, y, w, h*2) 
             setTimeout(function() {
                 try { 
-                    ctx.drawImage(this.video, 0, 0, this.width, this.height, x, y, w, h) 
+                    ctx.drawImage(this.video, 0 + w/2, 0 + h/2, (w), (h), x, y, w, h*2) 
                 }
                 catch (e) {}
             }, 100)
@@ -80,3 +79,5 @@ export class Camera {
         this.height = h
     }
 }
+
+export default { Camera }

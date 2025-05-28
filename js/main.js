@@ -4,7 +4,8 @@
 
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen, d
+    fstyle, VERSION, adtLen, d,
+    helperCTX
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -13,7 +14,8 @@ import { ImageMemory } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
 import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
-import { Notes, modeDescriptions } from "./notes.js"
+import { Notes, modeDescriptions, menuTitles } from "./notes.js"
+import { Particles } from "./particle.js"
 
 let NOW = performance.now()
 let frame_time = NOW
@@ -60,6 +62,8 @@ let flamenum = 0
 let lastFlame = 0
 
 // UI Buttons
+
+let buttonLayout // for non-menu buttons
 
 // title screen
 new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, { // Head Into Battle button
@@ -223,6 +227,32 @@ new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p
         Animators.blackout.play()
     }, 1000)
 }, {text: "Back", font: "Humming", size: 30})
+// bg button test
+new Button("bg", "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbuttonpress.png"}, {press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 59, h: 59
+}, (cenX + 200), (cenY - 100), function() {
+    buttonLayout = "backgroundedit"
+    curSelected = getButton("webcambg")
+    curSelected.state = "s"
+    menuButtons(menu).forEach(b => {
+        b.active = false
+        b.state = "i"
+    })
+})
+// upload image selection
+new Button("webcambg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 125, function() {
+    // upload background
+}, {text: "Web Cam", font: "Humming", size: 28})
+// upload image selection
+new Button("uploadbg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 275, function() {
+    // upload background
+}, {text: "Upload", font: "Humming", size: 28})
 
 let curSelected = getButton("battle")
 curSelected.state = "s"
@@ -274,7 +304,7 @@ function keypress(event) {
 
     if (menu) {
         if (key == KEYS.SPACE) {
-            if (curSelected && (menu == curSelected.menu) && (curSelected.canpress)) { // push the button
+            if (curSelected && (menu == curSelected.menu) && (curSelected.canpress && curSelected.active)) { // push the button
                 curSelected.canpress = false
                 curSelected.press()
             }
@@ -283,11 +313,11 @@ function keypress(event) {
             const dir = ((key == KEYS.A) && "LEFT") || ((key == KEYS.D) && "RIGHT") || ((key == KEYS.W) && "UP") || ((key == KEYS.S) && "DOWN")
             
             if (dir) {
-                const mB = menuButtons(menu)
+                const mB = menuButtons(menu, buttonLayout)
 
                 let selB
                 for (const b of mB) {
-                    if (b.state != "locked") {
+                    if (b.state != "locked" && b.active) {
                         if (selectNew(dir, selB, curSelected, b)) { // compare x or y differences based on direction
                             selB = b
                         }
@@ -531,9 +561,9 @@ function initializeGame(delay) {
 }
 
 // CAM TEST
-/*import { Camera } from "./camera.js"
+import { Camera } from "./camera.js"
 const c = new Camera()
-c.init()*/
+c.init()
 
 function update() {
     requestAnimationFrame(update)
@@ -668,6 +698,16 @@ function update() {
                 }
             }
             fakeHitboxes = null
+
+            // Handle particles
+            for (const p of Particles) {
+                if (!gamePaused) {
+                    p.update()
+                }
+                else {
+                    p.draw()
+                }
+            }
         }
 
         // Handle 'Beat 100 enemies'
@@ -743,15 +783,15 @@ function update() {
         else {
             // Handle P1 health bar and icon
 
-            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 350, 25, 64, 64)
-            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 427, 40, (158 * (P1.hp / P1.maxHP)), 32)
-            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 415, 40, 184, 32)
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, 360, 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, 437, 40, (158 * (P1.hp / P1.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, 425, 40, 184, 32)
 
             // Handle P2 health bar and icon
 
-            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 250), 25, 64, 64)
-            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 77), 40, (158 * (P2.hp / P2.maxHP)), 32)
-            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 65), 40, 184, 32)
+            img(ImageMemory["plricon.png"], 0, 0, 32, 32, (cenX + 240), 25, 64, 64)
+            img(ImageMemory["healthfill.png"], 0, 0, 128, 16, (cenX + 67), 40, (158 * (P2.hp / P2.maxHP)), 32)
+            img(ImageMemory["healthbar.png"], 0, 0, 92, 16, (cenX + 55), 40, 184, 32)
 
             // Handle the little VS icon
 
@@ -955,7 +995,7 @@ function update() {
         }
         else if (menu == "vsresults") {
             if (a1 || a2) { // a player won
-                img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+                img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
 
                 if (a1) { // p1 win
                     img(ImageMemory["1pfacewin.png"], 0, 0, 128, 128, 50, 50, 512, 512)
@@ -973,7 +1013,7 @@ function update() {
                 }
             }
             else { // draw
-                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h)
+                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
                 img(ImageMemory["draw.png"], 0, 0, 103, 68, (cenX - 103), (cenY - 204), 206, 136)
 
                 img(ImageMemory["1pfacebase.png"], 0, 0, 128, 128, 0, (cenY - 380), 512, 512)
@@ -991,9 +1031,9 @@ function update() {
             img(ImageMemory[`load${((lAnim.times > -1) && lAnim.times) || 0}.png`], 0, 0, 512, 256, 25, 75, w, 600)
 
             fstyle("rgb(255, 166, 0)")
-            font("16px Humming")
+            font("20px Humming")
             CTX.textAlign = "center"
-            text(`Reading...`, (cenX + 20), (cenY + 5))
+            text(`Reading...`, (cenX + 20), (cenY + 10))
 
             if (!loadingComplete) { // continue loading
                 if (!SoundMemory["loading.wav"].playing) playSound("loading.wav")
@@ -1035,26 +1075,42 @@ function update() {
 
             font("24px Humming")
             fstyle("black")
-            text(((!curSelected || curSelected.menu != menu) && "Select a mode") || modeDescriptions[curSelected.name], cenX, (h - 50))
+            text(((!curSelected || curSelected.menu != menu) && modeDescriptions.na) || modeDescriptions[curSelected.name], cenX, (h - 50))
         }
-        else if (menu == "createselect") {
-            stopSound("title.mp3")
+        else if (menu == "createselect" || menu == "fighternext" || menu == "uploadsel") {
+            if (menu == "createselect") stopSound("title.mp3")
 
             img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
-            queueNote()
-        }
-        else if (menu == "fighternext" || menu == "uploadsel") {
-            img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
+            font("48px Nitro")
+            fstyle("white")
+            text(menuTitles[menu] || menuTitles.na, (w - 400), 60)
 
             queueNote()
         }
         else if (menu == "createbg") {
             img(ImageMemory["createbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
+
+            font("48px Nitro")
+            fstyle("white")
+            text(menuTitles[menu] || menuTitles.na, (w - 400), 60)
+
+            queueNote()
+
+            if (buttonLayout == "backgroundedit") {
+                CTX.clearRect(0, 0, (w / 2), h)
+                fstyle("rgba(0, 100, 0, 0.5)")
+                frect(0, 0, (w / 2), h)
+
+                if (true) c.draw(CTX, 75, 200, 600, 600, 200, 0, 600, 600)
+            }
+            // draw background sprites
+
         }
 
         // load any buttons here
-        for (const b of menuButtons(menu)) {
+        for (const b of menuButtons(menu, buttonLayout)) {
+            console.log(b)
             if (curSelected.menu != menu && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
                 curSelected.state = "i"
                 curSelected = b
@@ -1071,7 +1127,7 @@ function update() {
             fstyle("red")
 
             text(`menu: ${menu} (n: ${nextMenu})`, 20, 120)
-            text(`buttons: ${Buttons.length} (m: ${menuButtons(menu).length})`, 20, 160)
+            text(`buttons: ${Buttons.length} (m: ${menuButtons(menu, buttonLayout).length})`, 20, 160)
         }
     }
 
@@ -1093,11 +1149,6 @@ function update() {
         text("debug mode", 20, 40)
         text(`fps: ${clamp(fps, 0, FPS)} (${fps})`, 20, 80)
     }
-
-    /*fstyle("red")
-    font("20px Humming")
-    text("! Hi, this is NOT being saved. Don't worry. PLEASE. !", w - 300, h - 410)
-    c.draw(CTX, cenX, cenY, 600, 400)*/
 }
 
 // Handle initial prompt screen (we need this for audio to work)
