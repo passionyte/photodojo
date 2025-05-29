@@ -75,6 +75,8 @@ newImage("hit.png")
 newImage("bgbutton.png")
 newImage("bgbuttonsel.png")
 newImage("bgbuttonpress.png")
+newImage("space.png")
+newImage("feedplaceholder.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)
@@ -83,3 +85,5 @@ for (let i = 0; (i < 6); i++) newImage(`nav${i}.png`)
 for (let i = 0; (i < 4); i++) newImage(`flame${i}.png`)
 for (let i = 0; (i < 10); i++) newImage(`score${i}.png`)
 for (let i = 0; (i < 8); i++) newImage(`load${i}.png`)
+
+export default { ImageMemory }

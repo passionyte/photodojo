@@ -2,7 +2,7 @@
 
 'use strict'
 
-import { gameControls } from "./main.js"
+import { GAME } from "./main.js"
 
 export const KEYS = {
     // P1 controls
@@ -84,7 +84,7 @@ export class Controller {
         const bind = this.findBindFromKeyCode(key)
 
         if (bind) {
-            if (!this.downKeys[key] && gameControls) {
+            if (!this.downKeys[key] && GAME.controls) {
                 this.downKeys[key] = true
 
                 if (bind.action) this.owner[bind.action]()

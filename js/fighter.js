@@ -3,7 +3,7 @@
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, collision, clamp, img } from "./globals.js"
-import { MODE, initialLeft, gamePaused } from "./main.js"
+import { initialLeft, GAME } from "./main.js"
 import { Timer, Animators } from "./animate.js"
 import { newImage } from "./images.js"
 import { Controller } from "./controller.js"
@@ -199,7 +199,7 @@ export class Fighter extends Object {
             this.offset = { x: 0, y: 0 } // base
         }
 
-        if (MODE == 1) { 
+        if (GAME.single) { 
             // scrolling
             if (this.plr) {
                 const xv = this.velocity.x
@@ -314,7 +314,7 @@ export class Fighter extends Object {
     }
 
     draw() {
-        if (gamePaused) {
+        if (GAME.paused) {
             this.bounds = stateBounds[this.state]
         }
         else {
@@ -444,7 +444,7 @@ export class Fighter extends Object {
             this.velocity.y = -15
 
             if (!this.plr) {
-                if (MODE == 1) { // Make enemies fall through the floor
+                if (GAME.single) { // Make enemies fall through the floor
                     this.ignoreGravity = true
                     globalThis.enemiesRemaining--
                     
