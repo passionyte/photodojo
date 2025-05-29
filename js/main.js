@@ -324,8 +324,10 @@ function keypress(event) {
                     }
                 }
                 if (selB) { // set currently selected button to idle, then overwrite with new button and select it
+                    console.log(curSelected.name)
                     curSelected.state = "i"
                     curSelected = selB
+                    console.log(curSelected.name)
                     selB.select()
                 }
             }
@@ -1110,8 +1112,8 @@ function update() {
 
         // load any buttons here
         for (const b of menuButtons(menu, buttonLayout)) {
-            console.log(b)
-            if (curSelected.menu != menu && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
+            //console.log(b)
+            if (curSelected.menu != menu && (!buttonLayout || curSelected.menu != buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
                 curSelected.state = "i"
                 curSelected = b
                 b.canpress = true
