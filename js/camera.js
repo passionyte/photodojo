@@ -56,14 +56,14 @@ export class Camera {
         return false
     }
 
-    draw(ctx, x = 0, y = 0, w = this.width, h = this.height) { // draws LIVE video contents
+    draw(ctx, sx = 0, sy = 0, sw = this.width, sh = this.height, dx, dy, dw, dh) { // draws LIVE video contents
         if (!this.active) return
 
         try {
-            ctx.drawImage(this.video, 0 + w/2, 0 + h/2, (w), (h), x, y, w, h*2) 
+            ctx.drawImage(this.video, sx, sy, sw, sh, dx, dy, dw, dh) 
             setTimeout(function() {
                 try { 
-                    ctx.drawImage(this.video, 0 + w/2, 0 + h/2, (w), (h), x, y, w, h*2) 
+                    ctx.drawImage(this.video, sx, sy, sw, sh, dx, dy, dw, dh)
                 }
                 catch (e) {}
             }, 100)
