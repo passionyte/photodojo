@@ -19,7 +19,7 @@ import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
 
-export let GAME = new Game("loading", "createbg")
+export let GAME = new Game("loading", "title")
 
 // Misc Variables
 let curCam
