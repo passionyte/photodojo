@@ -6,12 +6,14 @@ import { URL } from "./globals.js"
 
 export const ImageMemory = {}
 
-export function newImage(n) {
+export function newImage(n, e) { // e is external; meaning external URL
     let i = ImageMemory[n] // if already created, return the image, no point in creating duplicates like in sounds
     if (i) return i
 
     i = new Image()
-    i.src = (URL + "imgs/") + n || "template.jpg" // ensure the image can be found
+    i.src = e && n || (URL + "imgs/") + n || "template.jpg" // ensure the image can be found
+
+    console.log(i.src)
 
     ImageMemory[n] = i // log to memory
 

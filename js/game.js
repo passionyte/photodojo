@@ -29,12 +29,24 @@ export class Game {
         return this.frames.NOW
     }
 
+    set started(b) {
+        this.state.started = b
+    }
+
     get started() {
         return (this.state.started)
     }
 
+    set controls(b) {
+        this.state.controls = b
+    }
+
     get controls() {
         return (this.state.controls)
+    }
+
+    set paused(b) {
+        this.state.paused = b
     }
 
     get paused() {
