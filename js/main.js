@@ -19,10 +19,11 @@ import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
 
-export let GAME = new Game("loading", "title")
+export let GAME = new Game("createbg", "createbg")
 
 // Misc Variables
 let curCam
+let curPic
 let loadingComplete = false
 let prePauseTimers = {}
 let downKeys = {}
@@ -59,7 +60,7 @@ let lastFlame = 0
 
 // UI Buttons
 
-let buttonLayout // for non-menu buttons
+let buttonLayout = "backgroundedit"// for non-menu buttons
 
 // title screen
 new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, { // Head Into Battle button
@@ -228,8 +229,6 @@ new Button("bg", "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbut
     x: 0, y: 0, w: 59, h: 59
 }, (cenX + 200), (cenY - 100), function() {
     buttonLayout = "backgroundedit"
-    //curSelected = getButton("webcambg")
-    //curSelected.state = "s"
     menuButtons(GAME.menu).forEach(b => {
         b.active = false
         b.state = "i"
@@ -240,10 +239,13 @@ new Button("webcambg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png",
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
-    if (!curCam) {
-        curCam = new Camera()
-        curCam.init()
-    }
+    buttonLayout = "backgroundcapture"
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = false
+        b.state = "i"
+    })
+    if (!curCam) curCam = new Camera()
+    curCam.init()
 }, {text: "Web Cam", font: "Humming", size: 28})
 // upload image selection
 new Button("uploadbg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
@@ -258,7 +260,58 @@ new Button("bgseltypeback", "backgroundedit", {i: "sbutton.png", s: "sbuttonsel.
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
     buttonLayout = null
+    if (curCam) curCam.stop()
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
 }, {text: "Back", font: "Humming", size: 30})
+// create bg quit
+new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    buttonLayout = null
+    if (curCam) curCam.stop()
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
+}, {text: "Quit", font: "Humming", size: 30})
+// create bg take photo
+new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), cenY, function() {
+    buttonLayout = "backgroundsave"
+    if (curCam) {
+        curPic = curCam.photo()
+        curCam.stop()
+    }
+}, {text: "Take photo", font: "Humming", size: 28})
+// save bg quit
+new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    buttonLayout = null
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
+}, {text: "Quit", font: "Humming", size: 30})
+// save bg
+new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 125, function() {
+    buttonLayout = null
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
+}, {text: "Save", font: "Humming", size: 28})
+// upload image selection
+new Button("bgtryagain", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 275, function() {
+    // try again
+}, {text: "Try again", font: "Humming", size: 28})
 
 let curSelected = getButton("battle")
 curSelected.state = "s"
@@ -1107,7 +1160,56 @@ function update() {
             fstyle("white")
             text(menuTitles[GAME.menu] || menuTitles.na, (w - 400), 60)
 
-            queueNote()
+            if (buttonLayout == "backgroundedit" || buttonLayout == "backgroundcapture") {
+                // clear the left
+                CTX.clearRect(0, 0, (w / 2), h)
+
+                let vW
+                let vH
+
+                // background
+                if (!curCam || !curCam.active) {
+                    img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
+                }
+                else {
+                    vW = curCam.video.videoWidth
+                    vH = curCam.video.videoHeight
+                    curCam.draw(CTX, 0, 0, vW/2, vH/2, 0, 0, (w / 2), h)
+                }
+ 
+                // create green tint around feed
+                fstyle("rgba(0, 100, 0, 0.5)")
+                frect(0, 0, (w / 2), h)
+
+                // clear some space for the feed within the box itself, don't want that tinted
+                CTX.clearRect(80, 205, 440, 390)
+
+                if (!curCam) {
+                    // image upload?
+
+                }
+                else {
+                    // draw camera feed
+                    curCam.draw(CTX, 0, 0, vW, vH, 75, 200, 450, 400)
+                }
+
+                // Draw outline surrounding the feed
+                CTX.save()
+                CTX.strokeStyle = "yellow"
+                CTX.beginPath()
+                CTX.roundRect(75, 200, 450, 400, 20)
+                CTX.lineWidth = 12
+                CTX.stroke()
+                CTX.strokeStyle = "black"
+                CTX.beginPath()
+                CTX.roundRect(67, 192, 465, 418, 20)
+                CTX.lineWidth = 14
+                CTX.stroke()
+                CTX.restore()
+            }
+            else {
+                queueNote()
+            }
         }
 
         // load any MENU buttons here
@@ -1118,46 +1220,9 @@ function update() {
 
         // button layouts (non-menu connected buttons)
         if (buttonLayout == "backgroundedit") {
-            // clear the left
-            CTX.clearRect(0, 0, (w / 2), h)
-
             // tint the right beneath the button layout (doesn't really matter the order because this is the right)
             fstyle("rgba(0, 0, 0, 0.5)")
             frect((w / 2), 0, (w / 2), h)
-
-            // background
-            if (!curCam) {
-                img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
-            }
-            else {
-                img(ImageMemory["feedplaceholder.png"], 0, 0, (w / 2), h, 0, 0, (w / 2), h)
-                //curCam.draw(CTX, 0, 0, (w / 2), h, 200, 0, (w / 2), h)
-            }
-
-            // create green tint around feed
-            fstyle("rgba(0, 100, 0, 0.5)")
-            frect(0, 0, (w / 2), h)
-
-            // clear some space for the feed within the box itself, don't want that tinted
-            CTX.clearRect(105, 205, 390, 390)
-
-            if (!curCam) {
-                // image upload?
-
-            }
-            else {
-                // draw camera feed
-                curCam.draw(CTX, 105, 205, 390, 390, 200, 0, 390, 390)
-            }
-
-            // Draw outline surrounding the feed
-            CTX.save()
-            CTX.strokeStyle = "black"
-            CTX.beginPath()
-            CTX.roundRect(100, 200, 400, 400, 20)
-            CTX.lineWidth = 8
-            CTX.stroke()
-            CTX.restore()
         }
 
         // load any button layouts over the others

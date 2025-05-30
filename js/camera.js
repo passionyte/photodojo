@@ -26,6 +26,8 @@ export class Camera {
             })
 
             this.video.addEventListener("canplay", (ev) => {
+                console.log(`Initialized valid web cam. Your resolution is ${this.video.videoWidth}x${this.video.videoHeight}`)
+
                 this.active = true
 
                 // set width and height
@@ -49,9 +51,23 @@ export class Camera {
         }
     }
 
-    photo() {
+    photo(w = this.helper.width, h = this.helper.height) {
         // return the 'photo'
+        const ow = this.helper.width
+        const oh = this.helper.height
+
+        console.log(ow)
+        console.log(oh)
+        console.log(w)
+        console.log(h)
+
+        this.helper.width = w
+        this.helper.height = h
+
         if (this.active) return this.helper.toDataURL("image/png")
+
+        this.helper.width = ow
+        this.helper.height = oh
 
         return false
     }
