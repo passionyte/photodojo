@@ -5,7 +5,6 @@ export class Game {
         paused: false
     }
     mode
-    plrs = {}
     menu
     nextMenu
     frames = {

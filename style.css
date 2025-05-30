@@ -5,6 +5,7 @@ body {
 canvas {
     background-color: white;
     border: 0.5vw solid rgb(20, 20, 20);
+    display: flex
 }
 
 @font-face {
@@ -50,7 +51,5 @@ a {
     height: 400px;
     z-index: -100000;
     position: absolute;
-}
-.camera canvas {
-    display: none;
+    display: none
 }
