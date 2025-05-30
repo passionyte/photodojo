@@ -515,7 +515,7 @@ function initializeGame(delay) {
     if (SINGLE) { // singleplayer
         distSinceLastGuy = 0
         lastGuySpawned = 0
-        globalThis.enemiesRemaining = 1//100
+        globalThis.enemiesRemaining = 100
 
         setTimeout(function () {
             singlePlayerIntro()
