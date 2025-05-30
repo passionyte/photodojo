@@ -10,7 +10,7 @@ import {
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
 import { profile, saveData } from "./profile.js"
-import { ImageMemory } from "./images.js"
+import { ImageMemory, newImage } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
 import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
@@ -282,7 +282,7 @@ new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png"
 }, (cenX + 100), cenY, function() {
     buttonLayout = "backgroundsave"
     if (curCam) {
-        curPic = curCam.photo()
+        curPic = newImage(curCam.photo(), true)
         curCam.stop()
     }
 }, {text: "Take photo", font: "Humming", size: 28})
@@ -291,6 +291,7 @@ new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
     buttonLayout = null
+    curPic = null
     menuButtons(GAME.menu).forEach(b => {
         b.active = true
     })
@@ -310,7 +311,9 @@ new Button("bgtryagain", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 275, function() {
-    // try again
+    curPic = null
+    curCam.init()
+    buttonLayout = "backgroundcapture"
 }, {text: "Try again", font: "Humming", size: 28})
 
 let curSelected = getButton("battle")
@@ -1160,52 +1163,69 @@ function update() {
             fstyle("white")
             text(menuTitles[GAME.menu] || menuTitles.na, (w - 400), 60)
 
-            if (buttonLayout == "backgroundedit" || buttonLayout == "backgroundcapture") {
-                // clear the left
-                CTX.clearRect(0, 0, (w / 2), h)
-
+            if (buttonLayout && buttonLayout.includes("background")) {
                 let vW
                 let vH
 
-                // background
-                if (!curCam || !curCam.active) {
-                    img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
-                }
-                else {
+                if (curCam) {
                     vW = curCam.video.videoWidth
                     vH = curCam.video.videoHeight
-                    curCam.draw(CTX, 0, 0, vW/2, vH/2, 0, 0, (w / 2), h)
                 }
- 
-                // create green tint around feed
-                fstyle("rgba(0, 100, 0, 0.5)")
-                frect(0, 0, (w / 2), h)
 
-                // clear some space for the feed within the box itself, don't want that tinted
-                CTX.clearRect(80, 205, 440, 390)
+                // background
+                if (buttonLayout != "backgroundsave") {
+                    // clear the left
+                    CTX.clearRect(0, 0, (w / 2), h)
 
-                if (!curCam) {
-                    // image upload?
+                    if (!curCam || !curCam.active) {
+                        img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
+                    }
+                    else {
+                        curCam.draw(CTX, 0, 0, vW, vH, 0, 0, (w / 2), h)
+                    }
 
+                    // create green tint around feed
+                    fstyle("rgba(0, 100, 0, 0.5)")
+                    frect(0, 0, (w / 2), h)
+
+                    // clear some space for the feed within the box itself, don't want that tinted
+                    CTX.clearRect(80, 205, 440, 390)
+
+                    if (!curCam) {
+                        // image upload?
+
+                    }
+                    else {
+                        // draw camera feed
+                        curCam.draw(CTX, 0, 0, vW, vH, 75, 200, 450, 400)
+                    }
+
+                    // Draw outline surrounding the feed
+                    CTX.save()
+                    CTX.strokeStyle = "yellow"
+                    CTX.beginPath()
+                    CTX.roundRect(75, 200, 450, 400, 20)
+                    CTX.lineWidth = 12
+                    CTX.stroke()
+                    CTX.strokeStyle = "black"
+                    CTX.beginPath()
+                    CTX.roundRect(67, 192, 465, 418, 20)
+                    CTX.lineWidth = 14
+                    CTX.stroke()
+                    CTX.restore()
                 }
                 else {
-                    // draw camera feed
-                    curCam.draw(CTX, 0, 0, vW, vH, 75, 200, 450, 400)
-                }
+                    
 
-                // Draw outline surrounding the feed
-                CTX.save()
-                CTX.strokeStyle = "yellow"
-                CTX.beginPath()
-                CTX.roundRect(75, 200, 450, 400, 20)
-                CTX.lineWidth = 12
-                CTX.stroke()
-                CTX.strokeStyle = "black"
-                CTX.beginPath()
-                CTX.roundRect(67, 192, 465, 418, 20)
-                CTX.lineWidth = 14
-                CTX.stroke()
-                CTX.restore()
+                    CTX.save()
+                    fstyle("green")
+                    CTX.beginPath()
+                    CTX.roundRect(75, 200, 450, 450, 60)
+                    CTX.fill()
+                    CTX.restore()
+
+                    img(curPic, 0, 0, 640, 480, 80, 205, 470, 470)
+                }
             }
             else {
                 queueNote()
@@ -1219,7 +1239,7 @@ function update() {
         }
 
         // button layouts (non-menu connected buttons)
-        if (buttonLayout == "backgroundedit") {
+        if (buttonLayout && buttonLayout.includes("background")) {
             // tint the right beneath the button layout (doesn't really matter the order because this is the right)
             fstyle("rgba(0, 0, 0, 0.5)")
             frect((w / 2), 0, (w / 2), h)
