@@ -13,8 +13,6 @@ export function newImage(n, e) { // e is external; meaning external URL
     i = new Image()
     i.src = e && n || (URL + "imgs/") + n || "template.jpg" // ensure the image can be found
 
-    console.log(i.src)
-
     ImageMemory[n] = i // log to memory
 
     return i
@@ -79,6 +77,8 @@ newImage("bgbuttonsel.png")
 newImage("bgbuttonpress.png")
 newImage("space.png")
 newImage("feedplaceholder.png")
+newImage("finishbg.png")
+newImage("bgplaceholder.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)

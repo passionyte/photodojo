@@ -1,7 +1,5 @@
 // Passionyte 2025
 
-'use strict'
-
 import { GAME } from "./main.js"
 
 export const KEYS = {

@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: fighter.js
+ * Description: Handles the 'Fighter' and 'Hitbox' class, integral to the gameplay.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
