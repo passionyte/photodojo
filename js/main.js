@@ -4,8 +4,7 @@
 
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen, d,
-    helperCTX
+    fstyle, VERSION, adtLen
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -19,14 +18,20 @@ import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
 
-export let GAME = new Game("createbg", "createbg")
+export let GAME = new Game()
 
 // Misc Variables
 let curCam
 let curPic
+let backgroundSlot
 let loadingComplete = false
 let prePauseTimers = {}
 let downKeys = {}
+
+let vW
+let vH
+let dW
+let dH
 
 // Boundary Variables
 export const initialLeft = 0
@@ -60,7 +65,7 @@ let lastFlame = 0
 
 // UI Buttons
 
-let buttonLayout = "backgroundedit"// for non-menu buttons
+let buttonLayout // for non-menu buttons
 
 // title screen
 new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, { // Head Into Battle button
@@ -100,7 +105,7 @@ new Button("survival", "modeselect", "survivalbutton.png", undefined, { // vs bu
 }, (cenX + 56), cenY, loadGame)
 new Button("modeback", "modeselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "titlecancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
-}, 50, (h - 100), function() {
+}, 125, (h - 255), function() {
     GAME.menu = "title"
 }, {text: "Back", font: "Humming", size: 30})
 // create select
@@ -224,18 +229,22 @@ new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p
         Animators.blackout.play()
     }, 1000)
 }, {text: "Back", font: "Humming", size: 30})
-// bg button test
-new Button("bg", "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbuttonpress.png"}, {press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 59, h: 59
-}, (cenX + 200), (cenY - 100), function() {
-    buttonLayout = "backgroundedit"
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = false
-        b.state = "i"
+// bg buttons
+for (let z = 0; (z < 8); z++) {
+    const row = Math.floor((z / 3))
+    new Button(`bg${z}`, "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbuttonpress.png"}, {press: "createbutton.wav"}, {
+        x: 0, y: 0, w: 59, h: 59
+    }, (cenX + 59) + (150 * (z - (row * 3))), (150 + (150 * row)), function() {
+        buttonLayout = ((!profile.backgrounds[z]) && "newbackground") || "backgroundedit"
+        backgroundSlot = z
+        menuButtons(GAME.menu).forEach(b => {
+            b.active = false
+            b.state = "i"
+        })
     })
-})
+}
 // upload image selection
-new Button("webcambg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+new Button("webcambg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
@@ -248,7 +257,7 @@ new Button("webcambg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png",
     curCam.init()
 }, {text: "Web Cam", font: "Humming", size: 28})
 // upload image selection
-new Button("uploadbg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+new Button("uploadbg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 275, function() {
@@ -256,7 +265,7 @@ new Button("uploadbg", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png",
 
 }, {text: "Upload", font: "Humming", size: 28})
 // create bg
-new Button("bgseltypeback", "backgroundedit", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
     buttonLayout = null
@@ -279,7 +288,7 @@ new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.p
 new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), cenY, function() {
+}, (cenX + 100), (cenY - 96), function() {
     buttonLayout = "backgroundsave"
     if (curCam) {
         curPic = newImage(curCam.photo(), true)
@@ -302,6 +311,17 @@ new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
     buttonLayout = null
+    // save routine
+    console.log(`Saving background to slot ${backgroundSlot}`)
+    profile.backgrounds[backgroundSlot] = JSON.stringify({
+        src: curPic.src,
+        w: vW,
+        h: vH,
+    })
+    saveData(profile)
+    curPic = null
+    backgroundSlot = null
+
     menuButtons(GAME.menu).forEach(b => {
         b.active = true
     })
@@ -314,6 +334,13 @@ new Button("bgtryagain", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png
     curPic = null
     curCam.init()
     buttonLayout = "backgroundcapture"
+}, {text: "Try again", font: "Humming", size: 28})
+// edit image
+new Button("edittryagain", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), 275, function() {
+    buttonLayout = "newbackground"
 }, {text: "Try again", font: "Humming", size: 28})
 
 let curSelected = getButton("battle")
@@ -897,8 +924,12 @@ function update() {
             }
         }
 
-        // Handle 'pause' text
-        if (GAME.started && GAME.paused) img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 25), 177, 45)
+        // Handle 'pause' screen
+        if (GAME.started && GAME.paused) {
+            fstyle("rgba(0, 0, 0, 0.8")
+            frect(0, 0, w, h)
+            img(ImageMemory["pause.png"], 0, 0, 59, 15, (cenX - 65), (cenY - 100), 177, 45)
+        }
 
         if (DEBUG) { // round debug info
             fstyle("red")
@@ -1157,19 +1188,19 @@ function update() {
             queueNote()
         }
         else if (GAME.menu == "createbg") {
-            img(ImageMemory["createbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
+            img(ImageMemory[(buttonLayout != "backgroundsave") && "createbg.png" || "finishbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
             font("48px Nitro")
             fstyle("white")
             text(menuTitles[GAME.menu] || menuTitles.na, (w - 400), 60)
 
             if (buttonLayout && buttonLayout.includes("background")) {
-                let vW
-                let vH
-
-                if (curCam) {
+                if (curCam) { // max res should be 640x480
                     vW = curCam.video.videoWidth
                     vH = curCam.video.videoHeight
+
+                    dW = (640 - vW)
+                    dH = (480 - vH)
                 }
 
                 // background
@@ -1177,28 +1208,27 @@ function update() {
                     // clear the left
                     CTX.clearRect(0, 0, (w / 2), h)
 
-                    if (!curCam || !curCam.active) {
+                    let image = profile.backgrounds[backgroundSlot]
+                    if ((!curCam || !curCam.active) && !image) {
                         img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
+                        img(ImageMemory["bgplaceholder.png"], 0, 0, 450, 425, 75, 190, 450, 425)
                     }
                     else {
-                        curCam.draw(CTX, 0, 0, vW, vH, 0, 0, (w / 2), h)
+                        if (image) {
+                            img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
+                            img(newImage(JSON.parse(image).src), 0, 0, 640, 480, 75, 190, 450, 425)
+                        }
+                        else {
+                            curCam.draw(CTX, dW, dH, vW, vH, 0, 100, (w / 2), (h - 100))
+                        }   
                     }
 
-                    // create green tint around feed
+                    // create green tints around feed
                     fstyle("rgba(0, 100, 0, 0.5)")
-                    frect(0, 0, (w / 2), h)
-
-                    // clear some space for the feed within the box itself, don't want that tinted
-                    CTX.clearRect(80, 205, 440, 390)
-
-                    if (!curCam) {
-                        // image upload?
-
-                    }
-                    else {
-                        // draw camera feed
-                        curCam.draw(CTX, 0, 0, vW, vH, 75, 200, 450, 400)
-                    }
+                    frect(0, 0, (w / 2), 200)
+                    frect(0, (h - 200), (w / 2), 200)
+                    frect(0, 200, 75, 400)
+                    frect(((w / 2) - 75), 200, 75, 400)
 
                     // Draw outline surrounding the feed
                     CTX.save()
@@ -1215,12 +1245,14 @@ function update() {
                     CTX.restore()
                 }
                 else {
-                    
+                    font("38px Humming")
+                    fstyle("white")
+                    text("Save background?", 125, 60)
 
                     CTX.save()
                     fstyle("green")
                     CTX.beginPath()
-                    CTX.roundRect(75, 200, 450, 450, 60)
+                    CTX.roundRect(50, 175, 500, 450, 60)
                     CTX.fill()
                     CTX.restore()
 
@@ -1236,6 +1268,17 @@ function update() {
         for (const b of menuButtons(GAME.menu)) {
             determineAutoSelect(b)
             b.draw()
+
+            const nm = b.name
+            if (nm.includes("bg")) {
+                let image = profile.backgrounds[nm.replace("bg", "")]
+
+                if (image) {
+                    image = JSON.parse(image)
+
+                    img(newImage(image.src, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92) 
+                }
+            }
         }
 
         // button layouts (non-menu connected buttons)

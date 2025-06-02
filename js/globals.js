@@ -4,7 +4,7 @@
 
 import { initialLeft, initialRight } from "./main.js"
 
-export const DEBUG = false
+export const DEBUG = true
 
 export function d(id) {
     return document.getElementById(id)
@@ -31,7 +31,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.3.5"
+export let VERSION = "alpha 0.4.0"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`

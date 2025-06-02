@@ -7,7 +7,9 @@ export const defProfile = {
         points: 0,
         rank: "Fail",
         enemies: 0
-    }
+    },
+    fighters: {},
+    backgrounds: {}
 }
 
 const key = "PhotoDojoJS"

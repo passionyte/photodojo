@@ -2,6 +2,8 @@
 
 'use strict'
 
+const compression = 1 // ratio of compression
+
 import { VIDEO, helperCANVAS, helperCTX, DEBUG } from "./globals.js"
 
 export class Camera {
@@ -76,8 +78,8 @@ export class Camera {
         this.video = v
         this.helper = helper
         this.helperCTX = helper.getContext("2d") || helperCTX
-        this.width = w
-        this.height = h
+        this.width = w * compression
+        this.height = h * compression
     }
 }
 
