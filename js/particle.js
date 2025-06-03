@@ -46,7 +46,7 @@ export class Particle extends Object {
         const sh = this.style.sh
 
         img(this.img, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, 
-            ((this.left + ox) - (sw / 2)), 
+            ((this.absLeft + ox) - (sw / 2)), 
             ((this.bottom + oy) - (sh / 2)), 
             (this.width + sw), 
             (this.height + sh)

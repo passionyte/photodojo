@@ -87,7 +87,7 @@ export class Hitbox extends Object {
                         this.hits.push(hit)
 
                         // hit effect
-                        new Particle(this.absLeft, (this.top - 115), 0, 0, 96, 96, "hit", "hit.png", Bounds32, 200, {alpha: 0, sw: 96, sh: 96})
+                        new Particle(this.left, (this.top - 115), 0, 0, 96, 96, "hit", "hit.png", Bounds32, 200, {alpha: 0, sw: 96, sh: 96})
 
                         return true
                     }
@@ -252,7 +252,7 @@ export class Fighter extends Object {
                         this.position.y = floorPos
                         this.velocity.y = 0
 
-                        new Particle(this.absLeft, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+                        new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
                     }
                     else { // landing while fallen over
                         if (this.bounces > 0) { // we need to bounce the player a bit
@@ -261,7 +261,7 @@ export class Fighter extends Object {
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
                             this.bounces--
 
-                            new Particle(this.absLeft, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+                            new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
                         }
                         else { // end this
                             this.position.y = floorPos

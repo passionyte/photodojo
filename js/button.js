@@ -1,5 +1,7 @@
 // Passionyte 2025
 
+'use strict'
+
 import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"
 import { playSound } from "./sounds.js"
@@ -106,9 +108,6 @@ export class Button {
 
 export function selectNew(d, c, o, n) { // compare the 'candidate', old and new ... not going to be pretty.
     let result = false
-
-    console.log(`dy: ${Math.abs(n.y - o.y)}`)
-    console.log(`dx: ${Math.abs(n.x - o.x)}`)
 
     if (d == "LEFT") {
         result = (((n.x < o.x) && (Math.abs((n.y - o.y)) < 150)) && (!c || (n.x > c.x)))
