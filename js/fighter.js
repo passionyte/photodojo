@@ -53,6 +53,8 @@ const FighterTimers = { // What timers to create + duration
     lag: 0
 }
 
+const floorPos = (FLOOR - 258) // 258 is the stance height
+
 export const Fighters = []
 export const Hitboxes = []
 
@@ -87,7 +89,7 @@ export class Hitbox extends Object {
                         this.hits.push(hit)
 
                         // hit effect
-                        new Particle(this.left, (this.top - 115), 0, 0, 96, 96, "hit", "hit.png", Bounds32, 200, {alpha: 0, sw: 96, sh: 96})
+                        new Particle(this.left, (this.top - 115), 0, 0, 64, 64, "hit", "hit.png", Bounds32, 200, {alpha: 0, sw: 96, sh: 96})
 
                         return true
                     }
@@ -198,6 +200,10 @@ export class Fighter extends Object {
         this.state = ((crouchDesired) && "crouch") || ((xv != 0) && "march") || "stance"
     }
 
+    dust() { // helper function for dust
+        new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+    }
+
     update() {
         this.bounds = stateBounds[this.state]
         if (this.bounds.offset) { // if the bounds have an offset, use it
@@ -218,7 +224,6 @@ export class Fighter extends Object {
             }
         }
 
-        const floorPos = (FLOOR - 258) // 258 is the stance height
         this.grounded = (!this.fallen && (this.bottom >= floorPos && this.velocity.y == 0) && !this.ignoreGravity)
 
         if (this.velocity.y != 0) { // y-velocity handling
@@ -252,7 +257,7 @@ export class Fighter extends Object {
                         this.position.y = floorPos
                         this.velocity.y = 0
 
-                        new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+                        this.dust()
                     }
                     else { // landing while fallen over
                         if (this.bounces > 0) { // we need to bounce the player a bit
@@ -261,7 +266,7 @@ export class Fighter extends Object {
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
                             this.bounces--
 
-                            new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+                            this.dust()
                         }
                         else { // end this
                             this.position.y = floorPos
@@ -477,6 +482,8 @@ export class Fighter extends Object {
 
     punch() { 
         if (this.grounded && this.canAttack) {
+            this.dust()
+
             this.marchLock = true
             this.state = "punch"
 

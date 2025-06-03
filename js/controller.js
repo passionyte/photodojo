@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: controller.js
+ * Description: Primary modular input handler
+ *
+ * Author: Logan
+ */
 
 import { GAME } from "./main.js"
 
