@@ -1,8 +1,16 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: notes.js
+ * Description: Contains long type out notes and descriptions for UI
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
-import { profile } from "./profile.js"
+import { imported } from "./profile.js"
 import { adtLen } from "./globals.js"
 
 export const Notes = {
@@ -13,9 +21,18 @@ export const Notes = {
         [3]: "fighters!",
         [4]: "   ",
         [5]: "Fighter slots",
-        [6]: `remaining: ${(8 - adtLen(profile.fighters))}`
+        [6]: `remaining: ${(8 - adtLen(imported.fighters))}`
     },
     fighternext: {
+        [0]: "Take photos and",
+        [1]: "record sounds to",
+        [2]: "create your own",
+        [3]: "customized fighter.",
+        [4]: "Build a stable of",
+        [5]: "ruthless fighting",
+        [6]: "machines!"
+    },
+    capturesel: {
         [0]: "Here, you will use",
         [1]: "photos to bring",
         [2]: "your fighters to life!",
@@ -56,7 +73,7 @@ export const modeDescriptions = {
 
 export const menuTitles = {
     createselect: "Create main menu",
-    fighternext: "Capture type",
+    capturesel: "Capture type",
     uploadsel: "Upload type",
     createbg: "Create background"
 }

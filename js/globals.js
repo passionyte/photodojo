@@ -1,10 +1,18 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: globals.js
+ * Description: Global references used by other scripts, contains 'Object' class and other essentials.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
 import { initialLeft, initialRight } from "./main.js"
 
-export const DEBUG = true
+export const DEBUG = false
 
 export function d(id) {
     return document.getElementById(id)
@@ -73,6 +81,16 @@ export function adtLen(a) {
     for (const t in a) result++
 
     return result
+}
+
+export function promptUpload() {
+    const i = document.createElement("input")
+
+    i.type = "file"
+
+    i.click()
+
+    return i // the acceptor will handle removing it
 }
 
 // Shortcut/Helper functions

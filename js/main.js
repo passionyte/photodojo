@@ -1,14 +1,22 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: main.js
+ * Description: The core script that makes the game tick. Handles everything between UI, enemies, and utilizing the other modules.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen
+    fstyle, VERSION, adtLen, promptUpload
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
-import { profile, saveData } from "./profile.js"
+import { profile, saveData, exportData, importData, imported, filename } from "./profile.js"
 import { ImageMemory, newImage } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
@@ -25,7 +33,6 @@ let curCam
 let curPic
 let backgroundSlot
 let loadingComplete = false
-let prePauseTimers = {}
 let downKeys = {}
 
 let vW
@@ -59,6 +66,12 @@ const eRemaining = {
 const createNote = {
     strs: {},
     goals: Notes.createselect
+}
+const noticeUI = {
+    x: w,
+    y: cenY,
+    visible: false,
+    text: ""
 }
 let flamenum = 0
 let lastFlame = 0
@@ -153,28 +166,34 @@ new Button("createbg", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p
     }, 1000)
 }, {text: "Create background!", font: "Humming", size: 28})
 // fighter photo type
-new Button("webcam", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+new Button("webcam", "capturesel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
-    Animators.blackin.play()
-    setTimeout(function() {
-        // take pics to make fighter
-        createNote.strs = {}
-        Animators.blackout.play()
-    }, 1000)
+    // take photos to make fighter
+    createNote.strs = {}
 }, {text: "Web Cam", font: "Humming", size: 28})
-new Button("upload", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+new Button("upload", "capturesel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 275, function() {
-    Animators.blackin.play()
-    setTimeout(function() {
-        GAME.menu = "uploadsel"
-        createNote.strs = {}
-        Animators.blackout.play()
-    }, 1000)
+    createNote.strs = {}
+    GAME.menu = "uploadsel"
 }, {text: "Upload", font: "Humming", size: 28})
+new Button("captureselback", "capturesel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
+    x: 0, y: 0, w: 78, h: 28
+}, (cenX + 50), (h - 200), function() {
+    createNote.strs = {}
+    GAME.menu = "fighternext"
+}, {text: "Back", font: "Humming", size: 30})
+// fighter next
+new Button("fighternext", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX + 100), (cenY - 96), function() {
+    createNote.strs = {}
+    GAME.menu = "capturesel"
+}, {text: "Next", font: "Humming", size: 28})
 new Button("fighternextback", "fighternext", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
@@ -201,22 +220,13 @@ new Button("template", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p: "
 {press: "createbutton.wav"}, {
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 275, function() {
-    Animators.blackin.play()
-    setTimeout(function() {
-        // upload template to make fighter!
-        createNote.strs = {}
-        Animators.blackout.play()
-    }, 1000)
+    // prompt template upload
 }, {text: "Template", font: "Humming", size: 28})
 new Button("uploadselback", "uploadsel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
     x: 0, y: 0, w: 78, h: 28
 }, (cenX + 50), (h - 200), function() {
-    Animators.blackin.play()
-    setTimeout(function() {
-        createNote.strs = {}
-        GAME.menu = "fighternext"
-        Animators.blackout.play()
-    }, 1000)
+    createNote.strs = {}
+    GAME.menu = "capturesel"
 }, {text: "Back", font: "Humming", size: 30})
 // create bg back
 new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
@@ -235,7 +245,7 @@ for (let z = 0; (z < 8); z++) {
     new Button(`bg${z}`, "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbuttonpress.png"}, {press: "createbutton.wav"}, {
         x: 0, y: 0, w: 59, h: 59
     }, (cenX + 59) + (150 * (z - (row * 3))), (150 + (150 * row)), function() {
-        buttonLayout = ((!profile.backgrounds[z]) && "newbackground") || "backgroundedit"
+        buttonLayout = ((!imported.backgrounds[z]) && "newbackground") || "backgroundedit"
         backgroundSlot = z
         menuButtons(GAME.menu).forEach(b => {
             b.active = false
@@ -311,14 +321,12 @@ new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p
     x: 0, y: 0, w: 158, h: 64
 }, (cenX + 100), 125, function() {
     buttonLayout = null
-    // save routine
-    console.log(`Saving background to slot ${backgroundSlot}`)
-    profile.backgrounds[backgroundSlot] = JSON.stringify({
+
+    imported.backgrounds[backgroundSlot] = JSON.stringify({
         src: curPic.src,
         w: vW,
         h: vH,
     })
-    saveData(profile)
     curPic = null
     backgroundSlot = null
 
@@ -342,6 +350,43 @@ new Button("edittryagain", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.p
 }, (cenX + 100), 275, function() {
     buttonLayout = "newbackground"
 }, {text: "Try again", font: "Humming", size: 28})
+// import/export
+new Button("export", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 94, h: 28
+}, (cenX + 25), (cenY + 250), exportData, {text: "Export data", font: "Humming", size: 24})
+new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 94, h: 28
+}, (cenX - 225), (cenY + 250), function() {
+    const input = promptUpload()
+
+    input.onchange = event => {
+        // only check for first file... should be a txt.
+        const exports = event.target.files[0]
+        if (exports) {
+            if (exports.name.includes(filename)) {
+                // ok... it's valid let's use filereader
+                const fr = new FileReader()
+                fr.readAsText(exports, "UTF-8")
+
+                fr.onload = event => {
+                    // import data.
+                    importData(event.target.result)
+                }
+            }
+        }
+        input.remove()
+    }
+}, {text: "Import data", font: "Humming", size: 24})
+// pause
+new Button("resume", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, {
+    x: 0, y: 0, w: 158, h: 64
+}, (cenX - 135), (cenY), function() {
+    buttonLayout = null
+    GAME.pause()
+}, {text: "Resume!", font: "Humming", size: 28})
 
 let curSelected = getButton("battle")
 curSelected.state = "s"
@@ -391,7 +436,7 @@ function keypress(event) {
     if (downKeys[key]) return
     downKeys[key] = true
 
-    if (GAME.menu) {
+    if (GAME.menu || (buttonLayout)) {
         if (key == KEYS.SPACE) {
             if (curSelected && (GAME.menu == curSelected.menu || buttonLayout == curSelected.menu) && (curSelected.canpress && curSelected.active)) { // push the button
                 curSelected.canpress = false
@@ -420,25 +465,12 @@ function keypress(event) {
             }
         }
     }
-    else {
+    
+    if (!GAME.menu) {
         if (key == KEYS.BACKSPACE) { // pause/unpause game
             if (GAME.started) {
-                GAME.paused = (!GAME.paused)
-
-                if (GAME.paused) {
-                    playSound("pause.wav", true)
-                    for (const t of Timers) { // stop active timers
-                        if (t.active) {
-                            t.stop()
-                            prePauseTimers[(t.duration - (GAME.now - t.began))] = t // assign our timer to the time since starting
-                        }
-                    }
-                }
-                else { // resume pre-pause timers
-                    playSound("resume.wav", true)
-                    for (const i in prePauseTimers) prePauseTimers[i].start(i) // restart timer from this point
-                    prePauseTimers = {} // clear memory
-                }
+                GAME.pause()
+                buttonLayout = ((GAME.paused) && "pause") || null
             }
         }
     }
@@ -470,6 +502,10 @@ new Animator("loading", "frame", 1000, 1, { goal: 7 })
 new Animator("createnote", "typeout", 2000, 1, { obj: createNote, snd: "text.wav" })
 
 // Functions
+
+function notice(str) {
+
+}
 
 function determineAutoSelect(b) {
     if (curSelected.menu != GAME.menu && (!buttonLayout || curSelected.menu != buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
@@ -558,7 +594,7 @@ function results() {
     clearText.visible = false
     Animators.blackin.play()
 
-    completionTime = Math.floor(((NOW - timeStarted) / 1000)) // time in seconds
+    completionTime = Math.floor(((GAME.now - timeStarted) / 1000)) // time in seconds
 
     hpStatic = P1.hp
 
@@ -1176,14 +1212,16 @@ function update() {
             fstyle("black")
             text(((!curSelected || curSelected.menu != GAME.menu) && modeDescriptions.na) || modeDescriptions[curSelected.name], cenX, (h - 50))
         }
-        else if (GAME.menu == "createselect" || GAME.menu == "fighternext" || GAME.menu == "uploadsel") {
+        else if (GAME.menu == "createselect" || GAME.menu == "fighternext" || GAME.menu == "uploadsel" || GAME.menu == "capturesel") {
             if (GAME.menu == "createselect") stopSound("title.mp3")
 
             img(ImageMemory["createselect.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
             font("48px Nitro")
             fstyle("white")
-            text(menuTitles[GAME.menu] || menuTitles.na, (w - 400), 60)
+
+            const t = menuTitles[GAME.menu] || ""
+            text(t, (w - 400), 60)
 
             queueNote()
         }
@@ -1192,7 +1230,9 @@ function update() {
 
             font("48px Nitro")
             fstyle("white")
-            text(menuTitles[GAME.menu] || menuTitles.na, (w - 400), 60)
+
+            const t = menuTitles[GAME.menu] || ""
+            text(t, (w - 400), 60)
 
             if (buttonLayout && buttonLayout.includes("background")) {
                 if (curCam) { // max res should be 640x480
@@ -1208,7 +1248,7 @@ function update() {
                     // clear the left
                     CTX.clearRect(0, 0, (w / 2), h)
 
-                    let image = profile.backgrounds[backgroundSlot]
+                    let image = imported.backgrounds[backgroundSlot]
                     if ((!curCam || !curCam.active) && !image) {
                         img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
                         img(ImageMemory["bgplaceholder.png"], 0, 0, 450, 425, 75, 190, 450, 425)
@@ -1269,14 +1309,13 @@ function update() {
             determineAutoSelect(b)
             b.draw()
 
-            const nm = b.name
-            if (nm.includes("bg")) {
-                let image = profile.backgrounds[nm.replace("bg", "")]
+
+            if (b.name.includes("bg")) {
+                let image = imported.backgrounds[b.name.replace("bg", "")]
 
                 if (image) {
                     image = JSON.parse(image)
-
-                    img(newImage(image.src, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92) 
+                    img(newImage(image.src, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92)  
                 }
             }
         }
@@ -1288,12 +1327,6 @@ function update() {
             frect((w / 2), 0, (w / 2), h)
         }
 
-        // load any button layouts over the others
-        for (const b of menuButtons(undefined, buttonLayout)) {
-            determineAutoSelect(b)
-            b.draw()
-        }
-
         // menu indicator
         if (DEBUG) {
             CTX.textAlign = "left"
@@ -1303,6 +1336,12 @@ function update() {
             text(`menu: ${GAME.menu} (n: ${GAME.nextMenu})`, 20, 120)
             text(`buttons: ${Buttons.length} (m: ${menuButtons(GAME.menu, buttonLayout).length})`, 20, 160)
         }
+    }
+
+    // load any button layouts over the others
+    for (const b of menuButtons(undefined, buttonLayout)) {
+        determineAutoSelect(b)
+        b.draw()
     }
 
     // Handle black screen cover
