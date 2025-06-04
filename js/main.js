@@ -734,7 +734,8 @@ function update() {
     if (!GAME.menu) {
         // Handle background
 
-        const bg = newImage(parse(imported.backgrounds[0]).src, true) || ImageMemory["background.jpg"]
+        let bg = ImageMemory["background.jpg"]
+        if (imported.backgrounds[0]) bg = newImage(parse(imported.backgrounds[0]).src, true)
 
         img(bg, 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
 
