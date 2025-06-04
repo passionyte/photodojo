@@ -39,7 +39,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.4.0"
+export let VERSION = "alpha 0.4.5"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
@@ -99,6 +99,9 @@ export function text(t, x, y, w) { CTX.fillText(t, x, y, w) }
 export function font(str) { CTX.font = str }
 export function frect(x, y, w, h) { CTX.fillRect(x, y, w, h) }
 export function fstyle(str) { CTX.fillStyle = str }
+
+export function parse(a) { return JSON.parse(a) }
+export function stringify(a) { return JSON.stringify(a) }
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {

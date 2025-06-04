@@ -64,6 +64,18 @@ export const Notes = {
     }
 }
 
+export const Messages = {
+    import: {
+        [0]: `Successfully imported:`,
+        [1]: `${adtLen(imported.fighters)} fighters and ${adtLen(imported.backgrounds)} backgrounds.`,
+        [2]: `Data size: ${imported.size}`
+    },
+    camera: {
+        [0]: "Please allow Photo Dojo JS",
+        [1]: "access to your web cam."
+    },
+}
+
 export const modeDescriptions = {
     versus: "Have some chaotic fun with a friend!",
     survival: "Defeat 100 enemies and show you rock!",

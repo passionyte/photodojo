@@ -10,6 +10,8 @@
 
 'use strict'
 
+import { parse, stringify } from "./globals.js"
+
 export const defProfile = {
     best: {
         points: 0,
@@ -29,7 +31,7 @@ export const filename = "photodojojs_exports.txt"
 
 export function saveData(newProfile) {
     if (loaded) {
-        localStorage.setItem(key, JSON.stringify(newProfile))
+        localStorage.setItem(key, stringify(newProfile))
         profile = newProfile
     }
 }
@@ -38,20 +40,17 @@ export function loadData() {
     const s = localStorage.getItem(key)
 
     if (s) {
-        return JSON.parse(s)
+        return parse(s)
     }
 
     loaded = true
 }
 
 export function importData(str) {
-    console.log(str)
-
-    const data = JSON.parse(str)
+    const data = parse(str)
 
     if (data.backgrounds && data.fighters) {
         imported = data
-        console.log("success")
         return data
     }
 
@@ -59,7 +58,7 @@ export function importData(str) {
 }
 
 export function exportData() {
-    const str = JSON.stringify(imported)
+    const str = stringify(imported)
 
     const f = new File([str], filename)
 

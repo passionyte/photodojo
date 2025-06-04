@@ -31,7 +31,7 @@ export class Particle extends Object {
 
     remove() {
         const i = Particles.indexOf(this)
-        if (i) Particles.splice(i, 1)
+        if (i !== -1) Particles.splice(i, 1)
         return
     }
 
@@ -78,7 +78,7 @@ export class Particle extends Object {
             const t = new Animator(undefined, "tween", this.life, 1, {obj: this.style, prop: s})
 
             t.play()
-            setTimeout(this.remove, this.life)
+            setTimeout(() => this.remove(), this.life)
         }
 
         Particles.push(this)

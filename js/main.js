@@ -12,7 +12,7 @@
 
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen, promptUpload
+    fstyle, VERSION, adtLen, promptUpload, parse, stringify
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -20,8 +20,8 @@ import { profile, saveData, exportData, importData, imported, filename } from ".
 import { ImageMemory, newImage } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
-import { Button, Buttons, getButton, menuButtons, selectNew } from "./button.js"
-import { Notes, modeDescriptions, menuTitles } from "./notes.js"
+import { Button, Buttons, getButton, menuButtons, selectNew, sbuttonbounds, mbuttonbounds, lbuttonbounds, titlebuttonbounds } from "./button.js"
+import { Notes, modeDescriptions, menuTitles, Messages } from "./notes.js"
 import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
@@ -33,6 +33,7 @@ let curCam
 let curPic
 let backgroundSlot
 let loadingComplete = false
+let prePauseTimers = {}
 let downKeys = {}
 
 let vW
@@ -67,11 +68,12 @@ const createNote = {
     strs: {},
     goals: Notes.createselect
 }
-const noticeUI = {
+const msgBox = {
     x: w,
-    y: cenY,
+    y: (cenY - 125),
     visible: false,
-    text: ""
+    text: {},
+    pass: false
 }
 let flamenum = 0
 let lastFlame = 0
@@ -81,20 +83,10 @@ let lastFlame = 0
 let buttonLayout // for non-menu buttons
 
 // title screen
-new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, { // Head Into Battle button
-    i: {x: 104, y: 16, w: 112, h: 112},
-    s: {x: 216, y: 16, w: 112, h: 112},
-    p: {x: 104, y: 128, w: 112, h: 112},
-    l: {x: 216, y: 128, w: 112, h: 112}
-}, (cenX + 56), cenY, function() {
+new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, titlebuttonbounds, (cenX + 56), cenY, function() {
     GAME.menu = "modeselect"
 })
-new Button("create", "title", "createbutton.png", {press: "titlebutton.wav"}, { // create button
-    i: {x: 104, y: 16, w: 112, h: 112},
-    s: {x: 216, y: 16, w: 112, h: 112},
-    p: {x: 104, y: 128, w: 112, h: 112},
-    l: {x: 216, y: 128, w: 112, h: 112}
-}, (cenX - 280), cenY, function() {
+new Button("create", "title", "createbutton.png", {press: "titlebutton.wav"}, titlebuttonbounds, (cenX - 280), cenY, function() {
     Animators.blackin.play()
     setTimeout(function() {
         GAME.menu = "createselect"
@@ -102,29 +94,15 @@ new Button("create", "title", "createbutton.png", {press: "titlebutton.wav"}, { 
     }, 1000)
 })
 // mode select
-new Button("versus", "modeselect", "vsbutton.png", undefined, { // vs button
-    i: {x: 104, y: 16, w: 112, h: 112},
-    s: {x: 216, y: 16, w: 112, h: 112},
-    p: {x: 104, y: 128, w: 112, h: 112},
-    l: {x: 216, y: 128, w: 112, h: 112}
-}, (cenX - 280), cenY, function() {
+new Button("versus", "modeselect", "vsbutton.png", undefined, titlebuttonbounds, (cenX - 280), cenY, function() {
     loadGame(2)
 })
-new Button("survival", "modeselect", "survivalbutton.png", undefined, { // vs button
-    i: {x: 104, y: 16, w: 112, h: 112},
-    s: {x: 216, y: 16, w: 112, h: 112},
-    p: {x: 104, y: 128, w: 112, h: 112},
-    l: {x: 216, y: 128, w: 112, h: 112}
-}, (cenX + 56), cenY, loadGame)
-new Button("modeback", "modeselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "titlecancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, 125, (h - 255), function() {
+new Button("survival", "modeselect", "survivalbutton.png", undefined, titlebuttonbounds, (cenX + 56), cenY, loadGame)
+new Button("modeback", "modeselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "titlecancel.wav"}, sbuttonbounds, 125, (h - 255), function() {
     GAME.menu = "title"
 }, {text: "Back", font: "Humming", size: 30})
 // create select
-new Button("createselectback", "createselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("createselectback", "createselect", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
     setTimeout(function() {
         createNote.strs = {}
@@ -133,9 +111,7 @@ new Button("createselectback", "createselect", {i: "sbutton.png", s: "sbuttonsel
     }, 1000)
 }, {text: "Back", font: "Humming", size: 30})
 new Button("newfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 125, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     Animators.blackin.play()
     setTimeout(function() {
         createNote.strs = {}
@@ -144,9 +120,7 @@ new Button("newfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png",
     }, 1000)
 }, {text: "Make a new fighter!", font: "Humming", size: 28})
 new Button("editfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     Animators.blackin.play()
     setTimeout(function() {
         // open the fighter edit menu...
@@ -155,9 +129,7 @@ new Button("editfighter", "createselect", {i: "lbutton.png", s: "lbuttonsel.png"
     }, 1000)
 }, {text: "Edit a fighter!", font: "Humming", size: 28})
 new Button("createbg", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 425, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 425, function() {
     Animators.blackin.play()
     setTimeout(function() {
         GAME.menu = "createbg"
@@ -167,36 +139,26 @@ new Button("createbg", "createselect", {i: "lbutton.png", s: "lbuttonsel.png", p
 }, {text: "Create background!", font: "Humming", size: 28})
 // fighter photo type
 new Button("webcam", "capturesel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 125, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     // take photos to make fighter
     createNote.strs = {}
 }, {text: "Web Cam", font: "Humming", size: 28})
 new Button("upload", "capturesel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     createNote.strs = {}
     GAME.menu = "uploadsel"
 }, {text: "Upload", font: "Humming", size: 28})
-new Button("captureselback", "capturesel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("captureselback", "capturesel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     createNote.strs = {}
     GAME.menu = "fighternext"
 }, {text: "Back", font: "Humming", size: 30})
 // fighter next
 new Button("fighternext", "fighternext", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), (cenY - 96), function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), (cenY - 96), function() {
     createNote.strs = {}
     GAME.menu = "capturesel"
 }, {text: "Next", font: "Humming", size: 28})
-new Button("fighternextback", "fighternext", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("fighternextback", "fighternext", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
     setTimeout(function() {
         createNote.strs = {}
@@ -206,9 +168,7 @@ new Button("fighternextback", "fighternext", {i: "sbutton.png", s: "sbuttonsel.p
 }, {text: "Back", font: "Humming", size: 30})
 // upload image selection
 new Button("individual", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 125, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     Animators.blackin.play()
     setTimeout(function() {
         // upload pics to make fighter!
@@ -217,21 +177,15 @@ new Button("individual", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p:
     }, 1000)
 }, {text: "Individual", font: "Humming", size: 28})
 new Button("template", "uploadsel", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     // prompt template upload
 }, {text: "Template", font: "Humming", size: 28})
-new Button("uploadselback", "uploadsel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("uploadselback", "uploadsel", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     createNote.strs = {}
     GAME.menu = "capturesel"
 }, {text: "Back", font: "Humming", size: 30})
 // create bg back
-new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("createbgback", "createbg", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     Animators.blackin.play()
     setTimeout(function() {
         createNote.strs = {}
@@ -255,29 +209,26 @@ for (let z = 0; (z < 8); z++) {
 }
 // upload image selection
 new Button("webcambg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 125, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     buttonLayout = "backgroundcapture"
     menuButtons(GAME.menu).forEach(b => {
         b.active = false
         b.state = "i"
     })
-    if (!curCam) curCam = new Camera()
+    if (!curCam) {
+        messageBox(Messages.camera, true)
+        curCam = new Camera()
+    }
     curCam.init()
 }, {text: "Web Cam", font: "Humming", size: 28})
 // upload image selection
 new Button("uploadbg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     // upload background
 
 }, {text: "Upload", font: "Humming", size: 28})
 // create bg
-new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     buttonLayout = null
     if (curCam) curCam.stop()
     menuButtons(GAME.menu).forEach(b => {
@@ -285,9 +236,7 @@ new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.p
     })
 }, {text: "Back", font: "Humming", size: 30})
 // create bg quit
-new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     buttonLayout = null
     if (curCam) curCam.stop()
     menuButtons(GAME.menu).forEach(b => {
@@ -296,19 +245,18 @@ new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.p
 }, {text: "Quit", font: "Humming", size: 30})
 // create bg take photo
 new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), (cenY - 96), function() {
-    buttonLayout = "backgroundsave"
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), (cenY - 96), function() {
     if (curCam) {
-        curPic = newImage(curCam.photo(), true)
-        curCam.stop()
+        const photo = curCam.photo()
+        if (photo) {
+            buttonLayout = "backgroundsave"
+            curPic = newImage(photo, true)
+            curCam.stop()
+        }
     }
 }, {text: "Take photo", font: "Humming", size: 28})
 // save bg quit
-new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, {
-    x: 0, y: 0, w: 78, h: 28
-}, (cenX + 50), (h - 200), function() {
+new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
     buttonLayout = null
     curPic = null
     menuButtons(GAME.menu).forEach(b => {
@@ -317,12 +265,10 @@ new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png
 }, {text: "Quit", font: "Humming", size: 30})
 // save bg
 new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 125, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
     buttonLayout = null
 
-    imported.backgrounds[backgroundSlot] = JSON.stringify({
+    imported.backgrounds[backgroundSlot] = stringify({
         src: curPic.src,
         w: vW,
         h: vH,
@@ -334,31 +280,39 @@ new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p
         b.active = true
     })
 }, {text: "Save", font: "Humming", size: 28})
-// upload image selection
 new Button("bgtryagain", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     curPic = null
     curCam.init()
     buttonLayout = "backgroundcapture"
 }, {text: "Try again", font: "Humming", size: 28})
-// edit image
-new Button("edittryagain", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX + 100), 275, function() {
+// edit background
+new Button("editbgtryagain", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 225, function() {
     buttonLayout = "newbackground"
 }, {text: "Try again", font: "Humming", size: 28})
+new Button("editbgdelete", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 403, function() {
+    buttonLayout = null
+    imported.backgrounds[backgroundSlot] = null
+    backgroundSlot = null
+    messageBox("Deleted!", true)
+
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
+}, {text: "Delete", font: "Humming", size: 28})
+new Button("editbgback", "backgroundedit", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
+    buttonLayout = null
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = true
+    })
+}, {text: "Back", font: "Humming", size: 30})
 // import/export
 new Button("export", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 94, h: 28
-}, (cenX + 25), (cenY + 250), exportData, {text: "Export data", font: "Humming", size: 24})
+{press: "createbutton.wav"}, mbuttonbounds, (cenX + 25), (cenY + 250), exportData, {text: "Export data", font: "Humming", size: 24})
 new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 94, h: 28
-}, (cenX - 225), (cenY + 250), function() {
+{press: "createbutton.wav"}, mbuttonbounds, (cenX - 225), (cenY + 250), function() {
     const input = promptUpload()
 
     input.onchange = event => {
@@ -372,24 +326,26 @@ new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbutto
 
                 fr.onload = event => {
                     // import data.
-                    importData(event.target.result)
+                    const result = importData(event.target.result)
+                    messageBox({
+                        [0]: "Successfully imported:",
+                        [1]: `${adtLen(result.fighters)} fighters and ${adtLen(result.backgrounds)} backgrounds.`,
+                        [2]: `Data size: ${exports.size}`
+                    }, true)
                 }
             }
         }
         input.remove()
     }
 }, {text: "Import data", font: "Humming", size: 24})
-// pause
-new Button("resume", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, {
-    x: 0, y: 0, w: 158, h: 64
-}, (cenX - 135), (cenY), function() {
-    buttonLayout = null
-    GAME.pause()
-}, {text: "Resume!", font: "Humming", size: 28})
+// pause menu
+new Button("return", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, lbuttonbounds, (cenX - 125), (cenY), endMatch, {text: "Return to title screen!", font: "Humming", size: 24})
+new Button("controls", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, lbuttonbounds, (cenX - 125), (cenY + 208), endMatch, {text: "Controls", font: "Humming", size: 24})
 
-let curSelected = getButton("battle")
-curSelected.state = "s"
+globalThis.curSelected = getButton("battle")
+globalThis.curSelected.state = "s"
 
 // SINGLE PLAYER VARIABLES
 
@@ -436,11 +392,20 @@ function keypress(event) {
     if (downKeys[key]) return
     downKeys[key] = true
 
-    if (GAME.menu || (buttonLayout)) {
+    if (msgBox.visible && msgBox.pass) {
+        playSound("titlecancel.wav")
+        Animators.msgboxpass.play()
+
+        if (msgBox.callback) msgBox.callback()
+
+        return
+    }
+
+    if ((GAME.menu || (buttonLayout)) && (blackTrans.val >= 1)) {
         if (key == KEYS.SPACE) {
-            if (curSelected && (GAME.menu == curSelected.menu || buttonLayout == curSelected.menu) && (curSelected.canpress && curSelected.active)) { // push the button
-                curSelected.canpress = false
-                curSelected.press()
+            if (globalThis.curSelected && (GAME.menu == globalThis.curSelected.menu || buttonLayout == globalThis.curSelected.menu) && (globalThis.curSelected.canpress && globalThis.curSelected.active)) { // push the button
+                globalThis.curSelected.canpress = false
+                globalThis.curSelected.press()
             }
         }
         else { // Button navigation based on WASD keys
@@ -452,14 +417,14 @@ function keypress(event) {
                 let selB
                 for (const b of mB) {
                     if (b.state != "locked" && b.active) {
-                        if (selectNew(dir, selB, curSelected, b)) { // compare x or y differences based on direction
+                        if (selectNew(dir, selB, globalThis.curSelected, b)) { // compare x or y differences based on direction
                             selB = b
                         }
                     }
                 }
                 if (selB) { // set currently selected button to idle, then overwrite with new button and select it
-                    curSelected.state = "i"
-                    curSelected = selB
+                    globalThis.curSelected.state = "i"
+                    globalThis.curSelected = selB
                     selB.select()
                 }
             }
@@ -469,8 +434,23 @@ function keypress(event) {
     if (!GAME.menu) {
         if (key == KEYS.BACKSPACE) { // pause/unpause game
             if (GAME.started) {
-                GAME.pause()
+                GAME.paused = (!GAME.paused)
                 buttonLayout = ((GAME.paused) && "pause") || null
+
+                if (GAME.paused) {
+                    playSound("pause.wav", true)
+                    for (const t of Timers) { // stop active timers
+                        if (t.active) {
+                            t.stop()
+                            prePauseTimers[(t.duration - (GAME.now - t.began))] = t // assign our timer to the time since starting
+                        }
+                    }
+                }
+                else { // resume pre-pause timers
+                    playSound("resume.wav", true)
+                    for (const i in prePauseTimers) prePauseTimers[i].start(i) // restart timer from this point
+                    prePauseTimers = {} // clear memory
+                }
             }
         }
     }
@@ -494,23 +474,61 @@ new Animator("clearin", "tween", 250, 4000, { obj: clearText, prop: { x: (cenX -
 new Animator("clearout", "tween", 250, 1, { obj: clearText, prop: { x: -100 } }, results)
 new Animator("blackin", "tween", 500, 1, { obj: blackTrans, prop: { val: 0 } })
 new Animator("blackout", "tween", 500, 1, { obj: blackTrans, prop: { val: 1 } })
-new Animator("remainingsinglegrow", "tween", 100, 1, { obj: eRemaining, prop: { size2: 1.02 }}, function() { Animators.remainingsingleshrink.play() })
-new Animator("remaininggrow", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1.1, size1: 1.1, size2: 1.1}}, function() { Animators.remainingshrink.play() })
+new Animator("remainingsinglegrow", "tween", 100, 1, { obj: eRemaining, prop: { size2: 2 }}, function() { Animators.remainingsingleshrink.play() })
+new Animator("remaininggrow", "tween", 100, 1, { obj: eRemaining, prop: { size0: 2, size1: 2, size2: 2}}, function() { Animators.remainingshrink.play() })
 new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: { size2: 1 } })
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
 new Animator("loading", "frame", 1000, 1, { goal: 7 })
 new Animator("createnote", "typeout", 2000, 1, { obj: createNote, snd: "text.wav" })
+new Animator("msgbox", "tween", 400, 1, { obj: msgBox, prop: { x: ((cenX - 208)) } })
+new Animator("msgboxpass", "tween", 200, 1, { obj: msgBox, prop: { x: -416 } }, function() { 
+    msgBox.visible = false 
+    msgBox.text = "" } )
 
 // Functions
 
-function notice(str) {
+function endMatch(menu = "title", bl) {
+    Animators.blackin.play()
+    setTimeout(function() {
+        GAME.menu = menu
+        GAME.started = false
+        GAME.controls = false
 
+        buttonLayout = bl
+        P1 = null
+        P2 = null
+        for (const f of Fighters) {
+            console.log(f)
+            f.remove()
+        }
+        console.log(Fighters)
+        for (const h of Hitboxes) h.remove()
+        for (const t of Timers) t.stop()
+        for (const p of Particles) p.remove()
+        for (let a in Animators) {
+            a = Animators[a]
+            if (a != Animators.blackin && a != Animators.blackout) a.stop(true)
+        }
+        Animators.blackout.play()
+    }, 1000)
+}
+
+function messageBox(strs, pass, cb) {
+    playSound("attention.wav")
+
+    msgBox.visible = true
+    msgBox.x = w
+    msgBox.pass = (pass)
+    msgBox.text = strs
+    msgBox.callback = cb
+
+    Animators.msgbox.play()
 }
 
 function determineAutoSelect(b) {
-    if (curSelected.menu != GAME.menu && (!buttonLayout || curSelected.menu != buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
-        curSelected.state = "i"
-        curSelected = b
+    if (globalThis.curSelected.menu != GAME.menu && (!buttonLayout || globalThis.curSelected.menu != buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
+        globalThis.curSelected.state = "i"
+        globalThis.curSelected = b
         b.canpress = true
         b.state = "s"
     }
@@ -671,6 +689,8 @@ function initializeGame(delay) {
     // (re)set some game variables
     bg0x = 0
     bg1x = w
+    globalThis.leftConstraint = initialLeft
+    globalThis.rightConstraint = initialRight
 
     GAME.paused = false
     GAME.controls = false
@@ -714,7 +734,9 @@ function update() {
     if (!GAME.menu) {
         // Handle background
 
-        img(ImageMemory["background.jpg"], 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
+        const bg = newImage(parse(imported.backgrounds[0]).src, true) || ImageMemory["background.jpg"]
+
+        img(bg, 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
 
         const bgCX = (w / 2) // Center of background width
 
@@ -722,7 +744,7 @@ function update() {
         CTX.translate((bg1x - leftConstraint) + bgCX, 0) // Flip image horizontally
         CTX.scale(-1, 1)
         CTX.translate(-(((bg1x - leftConstraint)) + bgCX) + 600, 0) // restore the position (roughly)
-        img(ImageMemory["background.jpg"], 0, 0, 612, 408, (bg1x - leftConstraint) - bgCX, 0, w, h) // Draw the 2nd background
+        img(bg, 0, 0, 612, 408, (bg1x - leftConstraint) - bgCX, 0, w, h) // Draw the 2nd background
         CTX.restore() // Restore CTX state
 
         if (bg0x < (leftConstraint - w)) bg0x = (bg1x + w)
@@ -739,10 +761,13 @@ function update() {
                         if (enemiesRemaining > 3) amt = randInt(1, 3) // Ensures that we don't generate enemies after the remaining number reaches 0
 
                         for (let i = 0; (i < amt); i++) { // Generate the enemies, set their type and set distance and time to now
+                            if (!GAME.started) break
                             const guy = new Fighter(P1.left + w + (i * 200), (FLOOR - 258), undefined, undefined, undefined, 4)
-                            guy.enemyType = randInt(1, 200)
-                            distSinceLastGuy = P1.left
-                            lastGuySpawned = GAME.now
+                            if (guy) {
+                                guy.enemyType = randInt(1, 200)
+                                distSinceLastGuy = P1.left
+                                lastGuySpawned = GAME.now
+                            }
                         }
                     }
                 }
@@ -878,8 +903,7 @@ function update() {
             let rem = strToUINum((100 - enemiesRemaining))
             for (let i = 0; (i < 3); i++) {
                 const size = eRemaining[`size${i}`] || 1 // for animation purposes
-                const off = (size > 1 && ((27 * size) / 4)) || 0 // animation rough offset
-                img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, (((cenX + 360) - (off * 2)) + ((24 * size) * i)), (52 - off), (27 * size), (27 * size))
+                img(ImageMemory[`num${rem[i]}.png`], 0, 0, 13, 13, ((cenX + 360) + ((24 * size) * i)), 52, (27 * size), (27 * size))
             }
             rem = null
 
@@ -1210,7 +1234,7 @@ function update() {
 
             font("24px Humming")
             fstyle("black")
-            text(((!curSelected || curSelected.menu != GAME.menu) && modeDescriptions.na) || modeDescriptions[curSelected.name], cenX, (h - 50))
+            text(((!globalThis.curSelected || globalThis.curSelected.menu != GAME.menu) && modeDescriptions.na) || modeDescriptions[globalThis.curSelected.name], cenX, (h - 50))
         }
         else if (GAME.menu == "createselect" || GAME.menu == "fighternext" || GAME.menu == "uploadsel" || GAME.menu == "capturesel") {
             if (GAME.menu == "createselect") stopSound("title.mp3")
@@ -1256,7 +1280,7 @@ function update() {
                     else {
                         if (image) {
                             img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
-                            img(newImage(JSON.parse(image).src), 0, 0, 640, 480, 75, 190, 450, 425)
+                            img(newImage(parse(image).src), 0, 0, 640, 480, 75, 190, 475, 485)
                         }
                         else {
                             curCam.draw(CTX, dW, dH, vW, vH, 0, 100, (w / 2), (h - 100))
@@ -1284,10 +1308,10 @@ function update() {
                     CTX.stroke()
                     CTX.restore()
                 }
-                else {
+                else if (curPic && (curPic.src)) {
                     font("38px Humming")
                     fstyle("white")
-                    text("Save background?", 125, 60)
+                    text("Save background?", 300, 60)
 
                     CTX.save()
                     fstyle("green")
@@ -1297,6 +1321,16 @@ function update() {
                     CTX.restore()
 
                     img(curPic, 0, 0, 640, 480, 80, 205, 470, 470)
+                }
+                else {
+                    messageBox("An error occurred", true, function() {
+                        Animators.blackin.play()
+                        setTimeout(function() {
+                            buttonLayout = null
+                            Animators.blackout.play()
+                        }, 1000)
+                    })
+
                 }
             }
             else {
@@ -1309,13 +1343,15 @@ function update() {
             determineAutoSelect(b)
             b.draw()
 
-
             if (b.name.includes("bg")) {
                 let image = imported.backgrounds[b.name.replace("bg", "")]
 
                 if (image) {
-                    image = JSON.parse(image)
+                    image = parse(image)
                     img(newImage(image.src, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92)  
+                }
+                else {
+                    // temporary camera sprite here
                 }
             }
         }
@@ -1342,6 +1378,22 @@ function update() {
     for (const b of menuButtons(undefined, buttonLayout)) {
         determineAutoSelect(b)
         b.draw()
+    }
+
+    // Handle message boxes
+    if (msgBox.visible) {
+        img(ImageMemory["msgbox.png"], 0, 0, 208, 160, msgBox.x, msgBox.y, 416, 320)
+
+        if (msgBox.text) {
+            font("22px Humming")
+
+            if (typeof(msgBox.text) != "string") {
+                for (let i = 0; (i < adtLen(msgBox.text)); i++) text(msgBox.text[i], (msgBox.x + 208), ((msgBox.y + 120) + (40 * i)))
+            }
+            else {
+                text(msgBox.text, (msgBox.x + 208), ((msgBox.y + 150)))
+            }
+        }
     }
 
     // Handle black screen cover
