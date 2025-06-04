@@ -19,6 +19,16 @@ const genericSounds = { // default if no sound dictionary is provided
     press: "mode.wav"
 }
 
+export const titlebuttonbounds = {
+    i: {x: 104, y: 16, w: 112, h: 112},
+    s: {x: 216, y: 16, w: 112, h: 112},
+    p: {x: 104, y: 128, w: 112, h: 112},
+    l: {x: 216, y: 128, w: 112, h: 112}
+}
+export const sbuttonbounds = {x: 0, y: 0, w: 78, h: 28}
+export const mbuttonbounds = {x: 0, y: 0, w: 94, h: 28}
+export const lbuttonbounds = {x: 0, y: 0, w: 158, h: 64}
+
 export class Button {
     name
     state = "i" // current state of the button (i.e. i: idle, p: pressed, s: selected, h: highlighted)
@@ -79,6 +89,10 @@ export class Button {
         this.state = "p"
 
         setTimeout(this.onpress, 100)
+        setTimeout(() => {
+            this.state = ((globalThis.curSelected == this)) && "s" || "i"
+            this.canpress = true
+        }, 500)
     }
 
     select() { // when the player selects the button

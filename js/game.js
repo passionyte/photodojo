@@ -10,11 +10,6 @@
 
 'use strict'
 
-import { playSound } from "./sounds.js"
-import { Timers } from "./animate.js"
-
-let prePauseTimers = {}
-
 export class Game {
     state = {
         started: false,
@@ -27,27 +22,6 @@ export class Game {
     frames = {
         NOW: 0,
         time: 0
-    }
-
-    // functions
-
-    pause() {
-        this.paused = (!this.paused)
-
-        if (this.paused) {
-            playSound("pause.wav", true)
-            for (const t of Timers) { // stop active timers
-                if (t.active) {
-                    t.stop()
-                    prePauseTimers[(t.duration - (this.now - t.began))] = t // assign our timer to the time since starting
-                }
-            }
-        }
-        else { // resume pre-pause timers
-            playSound("resume.wav", true)
-            for (const i in prePauseTimers) prePauseTimers[i].start(i) // restart timer from this point
-            prePauseTimers = {} // clear memory
-        }
     }
 
     // helper getters/setters

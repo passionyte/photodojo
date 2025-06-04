@@ -73,5 +73,6 @@ newSound(true, "titlecancel.wav")
 newSound(true, "createbutton.wav")
 newSound(true, "createcancel.wav")
 newSound(true, "taunt.wav")
+newSound(true, "attention.wav")
 
 export default { SoundMemory }

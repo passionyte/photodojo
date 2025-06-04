@@ -10,7 +10,7 @@
 
 'use strict'
 
-import { adtLen } from "./globals.js"
+import { adtLen, clamp } from "./globals.js"
 import { playSound } from "./sounds.js"
 
 export const Animators = {}
@@ -71,21 +71,16 @@ export class Animator {
         else if (this.type == "tween") { // tweens properties of a object from point A to B
             this.time = (performance.now() - this.start)
 
+            const div = clamp((this.time / this.duration), 0, 1) // get the divisor for the tween based on the current time/progress and the duration of the tween
             for (let p in this.properties) {
-                const div = (this.duration / this.time) // get the divisor for the tween based on the current time/progress and the duration of the tween
                 let v
 
                 const pP = this.properties[p]
                 const sP = this.startProps[p]
 
-                if (pP < sP) { // tween down
-                    v = ((pP + sP) - (sP / div))
-                }
-                else { // tween up
-                    v = (sP + (pP / div))
-                }
+                v = sP + ((pP - sP) * div)
 
-                this.object[p] = v
+                this.object[p] = (Math.floor(v * 100) / 100)
             }
 
             // reached our goal, end

@@ -87,6 +87,7 @@ newImage("space.png")
 newImage("feedplaceholder.png")
 newImage("finishbg.png")
 newImage("bgplaceholder.png")
+newImage("msgbox.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)

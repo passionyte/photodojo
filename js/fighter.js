@@ -71,7 +71,8 @@ export class Hitbox extends Object {
     bounds // bounds of the image (if it has one, should typically be the width/height of the Object)
 
     remove() {
-        Hitboxes.splice(Hitboxes.indexOf(this), 1)
+        const h = Hitboxes.indexOf(this)
+        if (h !== -1) Hitboxes.splice(h, 1)
     }
 
     check(hit) {
@@ -181,7 +182,8 @@ export class Fighter extends Object {
     }
 
     remove() {
-        Fighters.splice(Fighters.indexOf(this), 1)
+        const f = Fighters.indexOf(this)
+        if (f !== -1) Fighters.splice(f, 1)
         return
     }
 
@@ -201,7 +203,7 @@ export class Fighter extends Object {
     }
 
     dust() { // helper function for dust
-        new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+        if (this.left < rightConstraint && this.left > leftConstraint) new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
     }
 
     update() {
