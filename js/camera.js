@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: camera.js
- * Description: The core script that manages the camera for streaming user content, to a specific box on the canvas (optionally) and taking photos in base64 format (for now)
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -27,10 +19,12 @@ export class Camera {
             .then((stream) => {
                 this.video.srcObject = stream
                 this.video.play()
+                return true
             })
             .catch((err) => { // got an error, disable
                 console.error(err)    
                 this.active = false
+                return false
             })
 
             this.video.listener = this.video.addEventListener("canplay", (ev) => {

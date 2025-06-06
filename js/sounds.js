@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: sounds.js
- * Description: Sound engine script that will create, store and play sounds.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 

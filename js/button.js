@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: button.js
- * Description: Fancy sprite button handler with selection and press compatibility (using keyboard)
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"

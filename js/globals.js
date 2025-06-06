@@ -39,7 +39,7 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.4.5"
+export let VERSION = "alpha 0.4.6"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
@@ -83,14 +83,30 @@ export function adtLen(a) {
     return result
 }
 
-export function promptUpload() {
+export function promptUpload() { // User is prompted to upload a file
     const i = document.createElement("input")
 
     i.type = "file"
-
-    i.click()
+    i.click() // forces the file upload window to open (differs between OS)
 
     return i // the acceptor will handle removing it
+}
+
+const bytes = { // I don't think people will have imports larger than MB...
+    [1e3]: "KB",
+    [1e6]: "MB"
+}
+
+export function toBytes(x) {
+    let ab = "B" // least is obviously just bytes
+
+    for (const size in bytes) {
+        if (x >= size) { // technically the numbers from bytes aren't "accurate" but it's good enough
+            ab = bytes[size]
+        }
+    }
+
+    return `${(Math.floor((x * 100)) / 100)} ${ab}` // implement into a string and return
 }
 
 // Shortcut/Helper functions

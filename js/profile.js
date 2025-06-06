@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: profile.js
- * Description: Handles saving and loading player profiles.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 

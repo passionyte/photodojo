@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: notes.js
- * Description: Contains long type out notes and descriptions for UI
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -72,8 +64,12 @@ export const Messages = {
     },
     camera: {
         [0]: "Please allow Photo Dojo JS",
-        [1]: "access to your web cam."
+        [1]: "access to your webcam."
     },
+    nocamera: {
+        [0]: "Photo Dojo JS was unable",
+        [1]: "to find and load your webcam.",
+    }
 }
 
 export const modeDescriptions = {

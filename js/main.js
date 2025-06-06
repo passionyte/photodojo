@@ -1,18 +1,10 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: main.js
- * Description: The core script that makes the game tick. Handles everything between UI, enemies, and utilizing the other modules.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen, promptUpload, parse, stringify
+    fstyle, VERSION, adtLen, promptUpload, parse, stringify, toBytes
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -26,7 +18,7 @@ import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
 
-export let GAME = new Game()
+export let GAME = new Game("loading", "vsresults")
 
 // Misc Variables
 let curCam
@@ -210,16 +202,22 @@ for (let z = 0; (z < 8); z++) {
 // upload image selection
 new Button("webcambg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
-    buttonLayout = "backgroundcapture"
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = false
-        b.state = "i"
-    })
     if (!curCam) {
         messageBox(Messages.camera, true)
         curCam = new Camera()
     }
-    curCam.init()
+    
+    const av = curCam.init() // get if cam is available (while initializing...)
+    if (av) {
+        buttonLayout = "backgroundcapture"
+        menuButtons(GAME.menu).forEach(b => {
+            b.active = false
+            b.state = "i"
+        })
+    }
+    else {
+        messageBox(Messages.nocamera, true)
+    }
 }, {text: "Web Cam", font: "Humming", size: 28})
 // upload image selection
 new Button("uploadbg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
@@ -330,7 +328,7 @@ new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbutto
                     messageBox({
                         [0]: "Successfully imported:",
                         [1]: `${adtLen(result.fighters)} fighters and ${adtLen(result.backgrounds)} backgrounds.`,
-                        [2]: `Data size: ${exports.size}`
+                        [2]: `Data size: ${toBytes(exports.size)}`
                     }, true)
                 }
             }
@@ -342,7 +340,10 @@ new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbutto
 new Button("return", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX - 125), (cenY), endMatch, {text: "Return to title screen!", font: "Humming", size: 24})
 new Button("controls", "pause", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
-{press: "createbutton.wav"}, lbuttonbounds, (cenX - 125), (cenY + 208), endMatch, {text: "Controls", font: "Humming", size: 24})
+{press: "createbutton.wav"}, lbuttonbounds, (cenX - 125), (cenY + 150), undefined, {text: "Controls", font: "Humming", size: 24})
+// vs results
+new Button("return", "vsresults", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
+{press: "createbutton.wav"}, lbuttonbounds, (cenX - 150), (cenY + 200), endMatch, {text: "Return to title screen!", font: "Humming", size: 24})
 
 globalThis.curSelected = getButton("battle")
 globalThis.curSelected.state = "s"
@@ -480,16 +481,18 @@ new Animator("remainingsingleshrink", "tween", 100, 1, { obj: eRemaining, prop: 
 new Animator("remainingshrink", "tween", 100, 1, { obj: eRemaining, prop: { size0: 1, size1: 1, size2: 1}})
 new Animator("loading", "frame", 1000, 1, { goal: 7 })
 new Animator("createnote", "typeout", 2000, 1, { obj: createNote, snd: "text.wav" })
-new Animator("msgbox", "tween", 400, 1, { obj: msgBox, prop: { x: ((cenX - 208)) } })
+new Animator("msgbox", "tween", 200, 1, { obj: msgBox, prop: { x: ((cenX - 208)) } })
 new Animator("msgboxpass", "tween", 200, 1, { obj: msgBox, prop: { x: -416 } }, function() { 
     msgBox.visible = false 
     msgBox.text = "" } )
 
 // Functions
 
-function endMatch(menu = "title", bl) {
+function endMatch(menu = "title", bl) { // Force ends the match (un-naturally)
     Animators.blackin.play()
+
     setTimeout(function() {
+        // reset/clear everything and proceed back to a menu
         GAME.menu = menu
         GAME.started = false
         GAME.controls = false
@@ -497,15 +500,11 @@ function endMatch(menu = "title", bl) {
         buttonLayout = bl
         P1 = null
         P2 = null
-        for (const f of Fighters) {
-            console.log(f)
-            f.remove()
-        }
-        console.log(Fighters)
+        for (const f of Fighters) f.remove()
         for (const h of Hitboxes) h.remove()
         for (const t of Timers) t.stop()
         for (const p of Particles) p.remove()
-        for (let a in Animators) {
+        for (let a in Animators) { // Reset all animators except for the ones we are using
             a = Animators[a]
             if (a != Animators.blackin && a != Animators.blackout) a.stop(true)
         }
@@ -513,7 +512,7 @@ function endMatch(menu = "title", bl) {
     }, 1000)
 }
 
-function messageBox(strs, pass, cb) {
+function messageBox(strs, pass, cb) { // Opens a message box that can be closed by the player upon input (or through other means if pass is false)
     playSound("attention.wav")
 
     msgBox.visible = true
@@ -557,7 +556,7 @@ function queueNote() {
     }
 }
 
-function loadGame(m = 1) {
+function loadGame(m = 1) { // Load the game after the loading screen
     stopSound("title.mp3")
 
     GAME.mode = m
@@ -654,7 +653,7 @@ function enemiesCallback() {
     Animators.enemiesflash.play()
 }
 
-function singlePlayerIntro(cb) {
+function singlePlayerIntro(cb) { // Single player / survival intro
     if (!cb) {
         Animators.enemies.play()
     }
@@ -662,7 +661,7 @@ function singlePlayerIntro(cb) {
         playSound("ready.wav")
         Animators.ready.play()
 
-        setTimeout(function () {
+        setTimeout(function() {
             playSound("go.wav")
             GAME.started = true
             GAME.controls = true
@@ -672,11 +671,11 @@ function singlePlayerIntro(cb) {
     }
 }
 
-function versusIntro() {
+function versusIntro() { // Multi player / versus intro
     playSound("ready.wav")
     Animators.ready.play()
 
-    setTimeout(function () {
+    setTimeout(function() {
         playSound("go.wav")
         GAME.started = true
         GAME.controls = true
@@ -703,7 +702,7 @@ function initializeGame(delay) {
         lastGuySpawned = 0
         globalThis.enemiesRemaining = 100
 
-        setTimeout(function () {
+        setTimeout(function() {
             singlePlayerIntro()
             Animators.nav.play()
         }, delay || 1)
@@ -735,7 +734,7 @@ function update() {
         // Handle background
 
         let bg = ImageMemory["background.jpg"]
-        if (imported.backgrounds[0]) bg = newImage(parse(imported.backgrounds[0]).src, true)
+        if (imported.backgrounds[0]) bg = newImage(parse(imported.backgrounds[0]).src, true) // TODO: remove later for dedicated background select
 
         img(bg, 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
 
@@ -750,6 +749,8 @@ function update() {
 
         if (bg0x < (leftConstraint - w)) bg0x = (bg1x + w)
         if (bg1x < (leftConstraint - w)) bg1x = (bg0x + w)
+
+        // Handle enemy spawning
 
         if (GAME.started) {
             // Single player NPCS
@@ -771,9 +772,6 @@ function update() {
                             }
                         }
                     }
-                }
-                else {
-                    // win
                 }
             }
         }
@@ -1174,10 +1172,11 @@ function update() {
             }
             else { // draw
                 img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
-                img(ImageMemory["draw.png"], 0, 0, 103, 68, (cenX - 103), (cenY - 204), 206, 136)
 
-                img(ImageMemory["1pfacebase.png"], 0, 0, 128, 128, 0, (cenY - 380), 512, 512)
-                img(ImageMemory["2pfacebase.png"], 0, 0, 128, 128, (w - 512), (cenY - 380), 512, 512)
+                img(ImageMemory["1pfacebase.png"], 0, 0, 128, 128, 100, (cenY - 325), 512, 512)
+                img(ImageMemory["2pfacebase.png"], 0, 0, 128, 128, (w - 612), (cenY - 325), 512, 512)
+
+                img(ImageMemory["draw.png"], 0, 0, 103, 68, (cenX - 154), (cenY - 185), 309, 204)
             }
         }
         else if (GAME.menu == "loading") {
