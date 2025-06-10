@@ -70,9 +70,9 @@ export class Animator {
                 const pP = this.properties[p]
                 const sP = this.startProps[p]
 
-                v = sP + ((pP - sP) * div)
+                v = sP + ((pP - sP) * div) // simple linear function to determine value for this tick
 
-                this.object[p] = (Math.floor(v * 100) / 100)
+                this.object[p] = v // very important we don't round any results.. it will lead to glitchy effects.
             }
 
             // reached our goal, end

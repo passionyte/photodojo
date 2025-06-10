@@ -39,7 +39,9 @@ export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/pass
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.4.6"
+export const FR = new FileReader()
+
+export let VERSION = "alpha 0.4.8"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
@@ -103,6 +105,8 @@ export function toBytes(x) {
     for (const size in bytes) {
         if (x >= size) { // technically the numbers from bytes aren't "accurate" but it's good enough
             ab = bytes[size]
+
+            x /= size
         }
     }
 

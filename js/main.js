@@ -2,9 +2,12 @@
 
 'use strict'
 
+// Import the massive conglomerate of stuff we need
 import {
     CTX, w, h, cenX, cenY, MS_PER_FRAME, FPS, clearCanvas, DEBUG, clamp, FLOOR, randInt, cloneArray, img, text, frect, font, 
-    fstyle, VERSION, adtLen, promptUpload, parse, stringify, toBytes
+    fstyle, VERSION, adtLen, promptUpload, toBytes, FR,
+    helperCTX,
+    helperCANVAS
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
@@ -12,13 +15,14 @@ import { profile, saveData, exportData, importData, imported, filename } from ".
 import { ImageMemory, newImage } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
-import { Button, Buttons, getButton, menuButtons, selectNew, sbuttonbounds, mbuttonbounds, lbuttonbounds, titlebuttonbounds } from "./button.js"
+import { Button, Buttons, getButton, menuButtons, selectNew, sbuttonbounds, mbuttonbounds, lbuttonbounds, titlebuttonbounds, menuButtonsActive } from "./button.js"
 import { Notes, modeDescriptions, menuTitles, Messages } from "./notes.js"
 import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
 
-export let GAME = new Game("loading", "vsresults")
+// Create a new game!
+export let GAME = new Game()
 
 // Misc Variables
 let curCam
@@ -71,8 +75,6 @@ let flamenum = 0
 let lastFlame = 0
 
 // UI Buttons
-
-let buttonLayout // for non-menu buttons
 
 // title screen
 new Button("battle", "title", "battlebutton.png", {press: "titlebutton.wav"}, titlebuttonbounds, (cenX + 56), cenY, function() {
@@ -191,7 +193,7 @@ for (let z = 0; (z < 8); z++) {
     new Button(`bg${z}`, "createbg", {i: "bgbutton.png", s: "bgbuttonsel.png", p: "bgbuttonpress.png"}, {press: "createbutton.wav"}, {
         x: 0, y: 0, w: 59, h: 59
     }, (cenX + 59) + (150 * (z - (row * 3))), (150 + (150 * row)), function() {
-        buttonLayout = ((!imported.backgrounds[z]) && "newbackground") || "backgroundedit"
+        GAME.buttonLayout = ((!imported.backgrounds[z]) && "newbackground") || "backgroundedit"
         backgroundSlot = z
         menuButtons(GAME.menu).forEach(b => {
             b.active = false
@@ -207,39 +209,67 @@ new Button("webcambg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", 
         curCam = new Camera()
     }
     
-    const av = curCam.init() // get if cam is available (while initializing...)
-    if (av) {
-        buttonLayout = "backgroundcapture"
-        menuButtons(GAME.menu).forEach(b => {
-            b.active = false
-            b.state = "i"
-        })
-    }
-    else {
-        messageBox(Messages.nocamera, true)
-    }
+    curCam.init(function(ready) {
+        if (ready) {
+             GAME.buttonLayout = "backgroundcapture"
+            menuButtons(GAME.menu).forEach(b => {
+                b.active = false
+                b.state = "i"
+            })
+        }
+        else {
+            messageBox(Messages.noCamera, true)
+        }
+    })
 }, {text: "Web Cam", font: "Humming", size: 28})
 // upload image selection
 new Button("uploadbg", "newbackground", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     // upload background
+    const input = promptUpload()
 
+    input.onchange = change => {
+        const file = change.target.files[0] // just read the first file like we do with imports
+
+        if (file.type.includes("image/")) { // is a image
+            FR.readAsDataURL(file) 
+            FR.onload = ev => {
+                const bg = ev.target.result // is already base64 .. but we need to compress it
+
+                // set slot to uploaded image
+                GAME.buttonLayout = null
+                menuButtonsActive(true)
+                if (bg) {
+                    const i = newImage(bg, true)
+
+                    // wait for the image to finish loading
+                    i.onload = () => {
+                        helperCTX.clearRect(0, 0, helperCANVAS.width, helperCANVAS.height) // clear the previous image data
+                        helperCTX.drawImage(i, 0, 0, i.width, i.height, 0, 0, 640, 480) // after loading we can get its origin width and height... stretch that to 640x480
+                        imported.backgrounds[backgroundSlot] = helperCANVAS.toDataURL("image/png") // save the compressed image
+                    }
+                }
+                messageBox(`Upload ${((bg) && "successful") || "failed"}!`, true)
+            }
+        }
+        else {
+            messageBox("The file uploaded is not a image.", true)
+        }
+
+        input.remove()
+    }
 }, {text: "Upload", font: "Humming", size: 28})
 // create bg
 new Button("bgseltypeback", "newbackground", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
-    buttonLayout = null
+    GAME.buttonLayout = null
     if (curCam) curCam.stop()
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    menuButtonsActive(true)
 }, {text: "Back", font: "Humming", size: 30})
 // create bg quit
 new Button("bgcapquit", "backgroundcapture", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
-    buttonLayout = null
+    GAME.buttonLayout = null
     if (curCam) curCam.stop()
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    menuButtonsActive(true)
 }, {text: "Quit", font: "Humming", size: 30})
 // create bg take photo
 new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
@@ -247,7 +277,7 @@ new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png"
     if (curCam) {
         const photo = curCam.photo()
         if (photo) {
-            buttonLayout = "backgroundsave"
+            GAME.buttonLayout = "backgroundsave"
             curPic = newImage(photo, true)
             curCam.stop()
         }
@@ -255,56 +285,44 @@ new Button("bgtake", "backgroundcapture", {i: "lbutton.png", s: "lbuttonsel.png"
 }, {text: "Take photo", font: "Humming", size: 28})
 // save bg quit
 new Button("bgsavequit", "backgroundsave", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
-    buttonLayout = null
+    GAME.buttonLayout = null
     curPic = null
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    menuButtonsActive(true)
 }, {text: "Quit", font: "Humming", size: 30})
 // save bg
 new Button("bgsave", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 125, function() {
-    buttonLayout = null
+    GAME.buttonLayout = null
 
-    imported.backgrounds[backgroundSlot] = stringify({
-        src: curPic.src,
-        w: vW,
-        h: vH,
-    })
+    imported.backgrounds[backgroundSlot] = curPic.src
     curPic = null
     backgroundSlot = null
 
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    menuButtonsActive(true)
 }, {text: "Save", font: "Humming", size: 28})
 new Button("bgtryagain", "backgroundsave", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 275, function() {
     curPic = null
     curCam.init()
-    buttonLayout = "backgroundcapture"
+    GAME.buttonLayout = "backgroundcapture"
 }, {text: "Try again", font: "Humming", size: 28})
 // edit background
 new Button("editbgtryagain", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 225, function() {
-    buttonLayout = "newbackground"
+    GAME.buttonLayout = "newbackground"
 }, {text: "Try again", font: "Humming", size: 28})
 new Button("editbgdelete", "backgroundedit", {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png"}, 
 {press: "createbutton.wav"}, lbuttonbounds, (cenX + 100), 403, function() {
-    buttonLayout = null
+    GAME.buttonLayout = null
     imported.backgrounds[backgroundSlot] = null
     backgroundSlot = null
     messageBox("Deleted!", true)
 
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    menuButtonsActive(true)
 }, {text: "Delete", font: "Humming", size: 28})
 new Button("editbgback", "backgroundedit", {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png"}, {press: "createcancel.wav"}, sbuttonbounds, (cenX + 50), (h - 200), function() {
-    buttonLayout = null
-    menuButtons(GAME.menu).forEach(b => {
-        b.active = true
-    })
+    GAME.buttonLayout = null
+    menuButtonsActive(true)
 }, {text: "Back", font: "Humming", size: 30})
 // import/export
 new Button("export", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png"}, 
@@ -319,10 +337,9 @@ new Button("import", "title", {i: "mbutton.png", s: "mbuttonsel.png", p: "mbutto
         if (exports) {
             if (exports.name.includes(filename)) {
                 // ok... it's valid let's use filereader
-                const fr = new FileReader()
-                fr.readAsText(exports, "UTF-8")
+                FR.readAsText(exports, "UTF-8")
 
-                fr.onload = event => {
+                FR.onload = event => {
                     // import data.
                     const result = importData(event.target.result)
                     messageBox({
@@ -402,9 +419,9 @@ function keypress(event) {
         return
     }
 
-    if ((GAME.menu || (buttonLayout)) && (blackTrans.val >= 1)) {
+    if ((GAME.menu || (GAME.buttonLayout)) && (blackTrans.val >= 1)) {
         if (key == KEYS.SPACE) {
-            if (globalThis.curSelected && (GAME.menu == globalThis.curSelected.menu || buttonLayout == globalThis.curSelected.menu) && (globalThis.curSelected.canpress && globalThis.curSelected.active)) { // push the button
+            if (globalThis.curSelected && (GAME.menu == globalThis.curSelected.menu || GAME.buttonLayout == globalThis.curSelected.menu) && (globalThis.curSelected.canpress && globalThis.curSelected.active)) { // push the button
                 globalThis.curSelected.canpress = false
                 globalThis.curSelected.press()
             }
@@ -413,7 +430,7 @@ function keypress(event) {
             const dir = ((key == KEYS.A) && "LEFT") || ((key == KEYS.D) && "RIGHT") || ((key == KEYS.W) && "UP") || ((key == KEYS.S) && "DOWN")
             
             if (dir) {
-                const mB = menuButtons(GAME.menu, buttonLayout)
+                const mB = menuButtons(GAME.menu, GAME.buttonLayout)
 
                 let selB
                 for (const b of mB) {
@@ -436,7 +453,7 @@ function keypress(event) {
         if (key == KEYS.BACKSPACE) { // pause/unpause game
             if (GAME.started) {
                 GAME.paused = (!GAME.paused)
-                buttonLayout = ((GAME.paused) && "pause") || null
+                GAME.buttonLayout = ((GAME.paused) && "pause") || null
 
                 if (GAME.paused) {
                     playSound("pause.wav", true)
@@ -497,7 +514,7 @@ function endMatch(menu = "title", bl) { // Force ends the match (un-naturally)
         GAME.started = false
         GAME.controls = false
 
-        buttonLayout = bl
+        GAME.buttonLayout = bl
         P1 = null
         P2 = null
         for (const f of Fighters) f.remove()
@@ -525,7 +542,7 @@ function messageBox(strs, pass, cb) { // Opens a message box that can be closed 
 }
 
 function determineAutoSelect(b) {
-    if (globalThis.curSelected.menu != GAME.menu && (!buttonLayout || globalThis.curSelected.menu != buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
+    if (globalThis.curSelected.menu != GAME.menu && (!GAME.buttonLayout || globalThis.curSelected.menu != GAME.buttonLayout) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
         globalThis.curSelected.state = "i"
         globalThis.curSelected = b
         b.canpress = true
@@ -734,7 +751,7 @@ function update() {
         // Handle background
 
         let bg = ImageMemory["background.jpg"]
-        if (imported.backgrounds[0]) bg = newImage(parse(imported.backgrounds[0]).src, true) // TODO: remove later for dedicated background select
+        if (imported.backgrounds[0]) bg = newImage(imported.backgrounds[0], true) // TODO: remove later for dedicated background select
 
         img(bg, 0, 0, 612, 408, bg0x - leftConstraint, 0, w, h)
 
@@ -1153,25 +1170,25 @@ function update() {
         }
         else if (GAME.menu == "vsresults") {
             if (a1 || a2) { // a player won
-                img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
-
                 if (a1) { // p1 win
-                    img(ImageMemory["1pfacewin.png"], 0, 0, 128, 128, 50, 50, 512, 512)
-                    img(ImageMemory["winner.png"], 0, 0, 100, 27, 100, 25, 200, 54) // TODO: cycle animation
+                    img(ImageMemory["1pwinbg.png"], 0, 0, 256, 256, 0, 0, w, (h + 275))
+                    img(ImageMemory["1pfacewin.png"], 0, 0, 128, 128, -16, 0, 512, 512)
+                    img(ImageMemory["winner.png"], 0, 0, 100, 27, 69, 25, 350, 95) // TODO: cycle animation
 
-                    img(ImageMemory["2pfacelose.png"], 0, 0, 128, 128, (w - 512), (cenY - 256), 512, 512)
-                    img(ImageMemory["loser.png"], 0, 0, 103, 68, (w - 206), (cenY - 272), 206, 136) // TODO: shake animation
+                    img(ImageMemory["2pfacelose.png"], 0, 0, 128, 128, (w - 512), (cenY - 128), 512, 512)
+                    img(ImageMemory["loser.png"], 0, 0, 103, 68, (cenX + 152), (cenY - 204), 309, 204) // TODO: shake animation
                 }
                 else { // p2 win
-                    img(ImageMemory["2pfacewin.png"], 0, 0, 128, 128, (w - 50), (h - 50), 512, 512)
-                    img(ImageMemory["winner.png"], 0, 0, 100, 27, 100, (w - 25), (h - 200), 54, 200) // TODO: cycle animation
+                    img(ImageMemory["2pwinbg.png"], 0, 0, 256, 256, 0, 0, w, (h + 275))
+                    img(ImageMemory["2pfacewin.png"], 0, 0, 128, 128, (w - 512), 0, 512, 512)
+                    img(ImageMemory["winner.png"], 0, 0, 100, 27, (w - 425), 25, 350, 95) // TODO: cycle animation
 
-                    img(ImageMemory["1pfacelose.png"], 0, 0, 128, 128, 50, 50, 512, 512)
-                    img(ImageMemory["loser.png"], 0, 0, 103, 68, 25, 200, 206, 136) // TODO: shake animation
+                    img(ImageMemory["1pfacelose.png"], 0, 0, 128, 128, 0, (h - 512), 512, 512)
+                    img(ImageMemory["loserleft.png"], 0, 0, 103, 68, 125, 225, 309, 204) // TODO: shake animation
                 }
             }
             else { // draw
-                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, h + 275)
+                img(ImageMemory["2pdrawbg.png"], 0, 0, 256, 256, 0, 0, w, (h + 275))
 
                 img(ImageMemory["1pfacebase.png"], 0, 0, 128, 128, 100, (cenY - 325), 512, 512)
                 img(ImageMemory["2pfacebase.png"], 0, 0, 128, 128, (w - 612), (cenY - 325), 512, 512)
@@ -1250,7 +1267,7 @@ function update() {
             queueNote()
         }
         else if (GAME.menu == "createbg") {
-            img(ImageMemory[(buttonLayout != "backgroundsave") && "createbg.png" || "finishbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
+            img(ImageMemory[(GAME.buttonLayout != "backgroundsave") && "createbg.png" || "finishbg.png"], 0, 0, 1200, 800, 0, 0, w, h)
 
             font("48px Nitro")
             fstyle("white")
@@ -1258,7 +1275,7 @@ function update() {
             const t = menuTitles[GAME.menu] || ""
             text(t, (w - 400), 60)
 
-            if (buttonLayout && buttonLayout.includes("background")) {
+            if (GAME.buttonLayout && GAME.buttonLayout.includes("background")) {
                 if (curCam) { // max res should be 640x480
                     vW = curCam.video.videoWidth
                     vH = curCam.video.videoHeight
@@ -1268,7 +1285,7 @@ function update() {
                 }
 
                 // background
-                if (buttonLayout != "backgroundsave") {
+                if (GAME.buttonLayout != "backgroundsave") {
                     // clear the left
                     CTX.clearRect(0, 0, (w / 2), h)
 
@@ -1280,7 +1297,7 @@ function update() {
                     else {
                         if (image) {
                             img(ImageMemory["space.png"], 0, 0, 256, 128, 0, 0, (w / 2), h)
-                            img(newImage(parse(image).src), 0, 0, 640, 480, 75, 190, 475, 485)
+                            img(newImage(image, true), 0, 0, 640, 480, 75, 190, 475, 485)
                         }
                         else {
                             curCam.draw(CTX, dW, dH, vW, vH, 0, 100, (w / 2), (h - 100))
@@ -1326,7 +1343,7 @@ function update() {
                     messageBox("An error occurred", true, function() {
                         Animators.blackin.play()
                         setTimeout(function() {
-                            buttonLayout = null
+                            GAME.buttonLayout = null
                             Animators.blackout.play()
                         }, 1000)
                     })
@@ -1347,8 +1364,7 @@ function update() {
                 let image = imported.backgrounds[b.name.replace("bg", "")]
 
                 if (image) {
-                    image = parse(image)
-                    img(newImage(image.src, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92)  
+                    img(newImage(image, true), 0, 0, 640, 480, (b.position.x + 4), (b.position.y + 20), 118, 92)  
                 }
                 else {
                     // temporary camera sprite here
@@ -1357,7 +1373,7 @@ function update() {
         }
 
         // button layouts (non-menu connected buttons)
-        if (buttonLayout && buttonLayout.includes("background")) {
+        if (GAME.buttonLayout && GAME.buttonLayout.includes("background")) {
             // tint the right beneath the button layout (doesn't really matter the order because this is the right)
             fstyle("rgba(0, 0, 0, 0.5)")
             frect((w / 2), 0, (w / 2), h)
@@ -1370,12 +1386,12 @@ function update() {
             fstyle("red")
 
             text(`menu: ${GAME.menu} (n: ${GAME.nextMenu})`, 20, 120)
-            text(`buttons: ${Buttons.length} (m: ${menuButtons(GAME.menu, buttonLayout).length})`, 20, 160)
+            text(`buttons: ${Buttons.length} (m: ${menuButtons(GAME.menu, GAME.buttonLayout).length})`, 20, 160)
         }
     }
 
     // load any button layouts over the others
-    for (const b of menuButtons(undefined, buttonLayout)) {
+    for (const b of menuButtons(undefined, GAME.buttonLayout)) {
         determineAutoSelect(b)
         b.draw()
     }

@@ -11,6 +11,7 @@ export class Game {
     mode
     menu
     nextMenu
+    buttonLayout
     frames = {
         NOW: 0,
         time: 0

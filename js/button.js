@@ -3,6 +3,7 @@
 import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"
 import { playSound } from "./sounds.js"
+import { GAME } from "./main.js"
 
 export const Buttons = []
 
@@ -82,8 +83,10 @@ export class Button {
 
         setTimeout(this.onpress, 100)
         setTimeout(() => {
-            this.state = ((globalThis.curSelected == this)) && "s" || "i"
-            this.canpress = true
+            if (!GAME.buttonLayout || GAME.buttonLayout == this.menu) {
+                this.state = ((globalThis.curSelected == this)) && "s" || "i"
+                this.canpress = true
+            }
         }, 500)
     }
 
@@ -160,6 +163,18 @@ export function menuButtons(menu, layout) {
     }
 
     return result
+}
+
+export function menuButtonsActive(a) {
+    menuButtons(GAME.menu).forEach(b => {
+        b.active = (a)
+    })
+}
+
+export function layoutButtonsActive(a) {
+    menuButtons(undefined, GAME.buttonLayout).forEach(b => {
+        b.active = (a)
+    })
 }
 
 export default { Button }

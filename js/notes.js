@@ -66,9 +66,15 @@ export const Messages = {
         [0]: "Please allow Photo Dojo JS",
         [1]: "access to your webcam."
     },
-    nocamera: {
+    noCamera: {
         [0]: "Photo Dojo JS was unable",
-        [1]: "to find and load your webcam.",
+        [1]: "to find or load your webcam.",
+    },
+    wrongBackgroundSize: {
+        [0]: "Your uploaded background size",
+        [1]: "is larger than 640x480.",
+        [2]: "Please ensure it is 640x480",
+        [3]: "to allow for proper dimensions."
     }
 }
 

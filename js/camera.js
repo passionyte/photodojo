@@ -11,7 +11,7 @@ export class Camera {
     video
     helper // represents a helper canvas for getting the contents of video
 
-    init() {
+    init(cb) { // 'cb' represents a callback
         if (DEBUG) globalThis.cam = this
         if (!this.active) {
             // initialize the user's web cam as our source
@@ -19,12 +19,16 @@ export class Camera {
             .then((stream) => {
                 this.video.srcObject = stream
                 this.video.play()
-                return true
+                this.status = "available"
+
+                if (cb) cb(true)
             })
             .catch((err) => { // got an error, disable
                 console.error(err)    
                 this.active = false
-                return false
+                this.status = "error"
+
+                if (cb) cb(false)
             })
 
             this.video.listener = this.video.addEventListener("canplay", (ev) => {
