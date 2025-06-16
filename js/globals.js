@@ -27,8 +27,8 @@ export const h = CANVAS.clientHeight
 export const cenX = (w / 2)
 export const cenY = (h / 2)
 
-export const CTX = CANVAS.getContext("2d")
-export const helperCTX = helperCANVAS.getContext("2d")
+export const CTX = CANVAS.getContext("2d", {alpha: true})
+export const helperCTX = helperCANVAS.getContext("2d", {alpha: true})
 
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
@@ -41,7 +41,7 @@ export const GRAVITY = 0.75
 
 export const FR = new FileReader()
 
-export let VERSION = "alpha 0.4.8"
+export let VERSION = "alpha 0.6.0"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
@@ -113,6 +113,13 @@ export function toBytes(x) {
     return `${(Math.floor((x * 100)) / 100)} ${ab}` // implement into a string and return
 }
 
+export function compress(img, w, h) {
+    helperCTX.clearRect(0, 0, helperCANVAS.width, helperCANVAS.height)
+    helperCTX.drawImage(img, 0, 0, img.width, img.height, 0, 0, w, h)
+
+    return helperCANVAS.toDataURL("image/png")
+}
+
 // Shortcut/Helper functions
 export function img(i, sx, sy, sw, sh, dx, dy, dw, dh) { CTX.drawImage(i, sx, sy, sw, sh, dx, dy, dw, dh) }
 export function text(t, x, y, w) { CTX.fillText(t, x, y, w) }
@@ -122,6 +129,39 @@ export function fstyle(str) { CTX.fillStyle = str }
 
 export function parse(a) { return JSON.parse(a) }
 export function stringify(a) { return JSON.stringify(a) }
+
+export class UIObject {
+    position = {
+        x: 0,
+        y: 0
+    }
+
+    visible = false // for now
+
+    get x() {
+        return this.position.x
+    }
+
+    get y() {
+        return this.position.y
+    }
+
+    set x(a) {
+        this.position.x = a
+    }
+
+    set y(a) {
+        this.position.y = a
+    }
+
+    constructor(x, y, ext) {
+        this.position.x = x
+        this.position.y = y
+
+        // for extra variables
+        for (let s in ext) this[s] = ext[s]
+    }
+}
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {

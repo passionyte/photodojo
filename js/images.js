@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: images.js
+ * Description: Handles image memory and creation.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
@@ -53,9 +61,11 @@ newImage("survivalbutton.png")
 newImage("sbutton.png")
 newImage("sbuttonsel.png")
 newImage("sbuttonpress.png")
+newImage("sbuttonlock.png")
 newImage("lbutton.png")
 newImage("lbuttonsel.png")
 newImage("lbuttonpress.png")
+newImage("lbuttonlock.png")
 newImage("pause.png")
 newImage("2pdrawbg.png")
 newImage("2pwinbg.png")
@@ -82,6 +92,32 @@ newImage("finishbg.png")
 newImage("bgplaceholder.png")
 newImage("msgbox.png")
 newImage("loserleft.png")
+newImage("selectbg.png")
+newImage("bgmissing.png")
+newImage("bgcammissing.png")
+newImage("selbgbut.png")
+newImage("selbgbuts.png")
+newImage("selbgbutp.png")
+newImage("selbgbutl.png")
+newImage("fireball.png")
+newImage("emptyfighter.png")
+newImage("emptyfighterlarge.png")
+newImage("blinkfighter.png")
+newImage("blinkfighterlarge.png")
+newImage("longbutton.png")
+newImage("longbuttonsel.png")
+newImage("longbuttonpress.png")
+newImage("longbuttonlock.png")
+newImage("bgmaskgreen.png")
+newImage("bgmaskshape.png")
+newImage("basicmaskyellow.png")
+newImage("basicmaskshape.png")
+newImage("basicmask.png")
+newImage("createfighter.png")
+newImage("createbgtake.png")
+newImage("stancemask.png")
+newImage("controls.png")
+newImage("controlsvs.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)
@@ -90,5 +126,6 @@ for (let i = 0; (i < 6); i++) newImage(`nav${i}.png`)
 for (let i = 0; (i < 4); i++) newImage(`flame${i}.png`)
 for (let i = 0; (i < 10); i++) newImage(`score${i}.png`)
 for (let i = 0; (i < 8); i++) newImage(`load${i}.png`)
+for (let i = 0; (i < 6); i++) newImage(`bgflame${i}.png`)
 
 export default { ImageMemory }

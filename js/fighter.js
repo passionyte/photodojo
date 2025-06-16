@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: fighter.js
+ * Description: Handles the 'Fighter' and 'Hitbox' class, integral to the gameplay.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
@@ -45,7 +53,7 @@ const FighterTimers = { // What timers to create + duration
     lag: 0
 }
 
-const floorPos = (FLOOR - 258) // 258 is the stance height
+export const floorPos = (FLOOR - 258) // 258 is the stance height
 
 export const Fighters = []
 export const Hitboxes = []
@@ -156,6 +164,7 @@ export class Fighter extends Object {
     img
     bounds // derived from state in stateBounds
     shadow // shadow image under Fighter's feet
+    sounds = {} // sounds to play
 
     get t () { // for convenience
         return this.timers
@@ -309,7 +318,7 @@ export class Fighter extends Object {
                 this.state = "shoot"
 
                 const x = ((!this.lefty) && (this.right + 20)) || (this.left - 120)
-                new Hitbox(x, this.top, ((this.lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.jpg", FireballBounds, true)
+                new Hitbox(x, this.top, ((this.lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.png", FireballBounds, true)
             }
         }
 
@@ -565,7 +574,7 @@ export class Fighter extends Object {
         }
     }
 
-    constructor(x, y, plr, facing = "right", state = "stance", hp = defHP, name = "template") {
+    constructor(x, y, plr, facing = "right", state = "stance", hp = defHP, name = "template", sounds) {
         const bounds = stateBounds[state]
 
         if (!bounds) {
@@ -581,10 +590,11 @@ export class Fighter extends Object {
         this.state = state
         this.name = name
         this.plr = plr
-        this.img = newImage(`${name}.jpg`)
+        this.img = newImage(`${name}.png`)
         this.shadow = newImage("shadow.png")
         this.bounds = bounds
         this.facing = facing
+        this.sounds = sounds
 
         for (const nm in FighterTimers) this.timers[nm] = new Timer(nm, (FighterTimers[nm]))
 

@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: sounds.js
+ * Description: Sound engine script that will create, store and play sounds.
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
@@ -66,5 +74,12 @@ newSound(true, "createbutton.wav")
 newSound(true, "createcancel.wav")
 newSound(true, "taunt.wav")
 newSound(true, "attention.wav")
+newSound(true, "start.wav")
+newSound(true, "battle.mp3", undefined, true)
+newSound(true, "results.mp3", undefined, true)
+newSound(true, "create.mp3", undefined, true)
+newSound(true, "electro.mp3", undefined, true)
+newSound(true, "rockandroll.mp3", undefined, true)
+newSound(true, "clubbeat.mp3", undefined, true)
 
 export default { SoundMemory }

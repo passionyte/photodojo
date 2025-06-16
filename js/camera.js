@@ -1,8 +1,17 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: camera.js
+ * Description: The core script that manages the camera for streaming user content, to a specific box on the canvas (optionally) and taking photos in base64 format (for now)
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
 import { VIDEO, helperCANVAS, helperCTX, DEBUG } from "./globals.js"
+import { ImageMemory } from "./images.js"
 
 export class Camera {
     active = false
@@ -19,14 +28,12 @@ export class Camera {
             .then((stream) => {
                 this.video.srcObject = stream
                 this.video.play()
-                this.status = "available"
 
                 if (cb) cb(true)
             })
             .catch((err) => { // got an error, disable
                 console.error(err)    
                 this.active = false
-                this.status = "error"
 
                 if (cb) cb(false)
             })
@@ -58,6 +65,7 @@ export class Camera {
     photo() {
         // return the 'photo'
         helperCTX.drawImage(this.video, 0, 0, this.width, this.height)
+
         if (this.active) return this.helper.toDataURL("image/png")
 
         return false
@@ -78,7 +86,7 @@ export class Camera {
         catch (e) {}
     }
 
-    constructor(v = VIDEO, helper = helperCANVAS, w = 600, h = 400) {
+    constructor(v = VIDEO, helper = helperCANVAS, w = 640, h = 480) {
         this.video = v
         this.helper = helper
         this.helperCTX = helper.getContext("2d") || helperCTX

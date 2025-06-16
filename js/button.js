@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: button.js
+ * Description: Fancy sprite button handler with selection and press compatibility (using keyboard)
+ *
+ * Author: Logan
+ */
 
 import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"
@@ -21,6 +29,12 @@ export const titlebuttonbounds = {
 export const sbuttonbounds = {x: 0, y: 0, w: 78, h: 28}
 export const mbuttonbounds = {x: 0, y: 0, w: 94, h: 28}
 export const lbuttonbounds = {x: 0, y: 0, w: 158, h: 64}
+export const longbuttonbounds = {x: 0, y: 0, w: 158, h: 28}
+
+export const sbuttonimgs = {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png", l: "sbuttonlock.png"}
+export const mbuttonimgs = {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png", l: "mbuttonlock.png"}
+export const lbuttonimgs = {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png", l: "lbuttonlock.png"}
+export const longbuttonimgs = {i: "longbutton.png", s: "longbuttonsel.png", p: "longbuttonpress.png", l: "longbuttonlock.png"}
 
 export class Button {
     name
@@ -84,7 +98,7 @@ export class Button {
         setTimeout(this.onpress, 100)
         setTimeout(() => {
             if (!GAME.buttonLayout || GAME.buttonLayout == this.menu) {
-                this.state = ((globalThis.curSelected == this)) && "s" || "i"
+                this.state = "s"
                 this.canpress = true
             }
         }, 500)
@@ -96,9 +110,10 @@ export class Button {
         this.canpress = true
     }
 
-    constructor(n, m, i, snds = genericSounds, b, x, y, onpress, text, scale = 2) {
+    constructor(n, m, i, snds = genericSounds, b, x, y, onpress, text, s = "i", scale = 2) {
         this.name = n
         this.menu = m
+        this.state = s
         if (typeof(i) == "object") { // image per state
             this.img = {}
             this.img.d = true // make sure we know it's a dictionary
@@ -121,23 +136,45 @@ export class Button {
     }
 }
 
-export function selectNew(d, c, o, n) { // compare the 'candidate', old and new ... not going to be pretty.
-    let result = false
+export function selectNew(dir, current, origin, next) {
+    if (!next) return false
 
-    if (d == "LEFT") {
-        result = (((n.x < o.x) && (Math.abs((n.y - o.y)) < 150)) && (!c || (n.x > c.x)))
-    }
-    else if (d == "RIGHT") {
-        result = (((n.x > o.x) && (Math.abs((n.y - o.y)) < 150)) && (!c || (n.x < c.x)))
-    }
-    else if (d == "UP") {
-        result = (((n.y < o.y) && (Math.abs((n.x - o.x)) < 150)) && (!c || (n.y > c.y)))
-    }
-    else if (d == "DOWN") {
-        result = (((n.y > o.y) && (Math.abs((n.x - o.x)) < 150)) && (!c || (n.y < c.y)))
+    const dx = next.x - origin.x
+    const dy = next.y - origin.y
+
+    if (dir === "UP") {
+        if (dy >= 0) return false
+        if (!current) return true
+        const cy = current.y - origin.y
+        const cx = Math.abs(current.x - origin.x)
+        return (-dy < -cy) || (-dy === -cy && Math.abs(dx) < cx)
     }
 
-    return result
+    if (dir === "DOWN") {
+        if (dy <= 0) return false
+        if (!current) return true
+        const cy = current.y - origin.y
+        const cx = Math.abs(current.x - origin.x)
+        return (dy < cy) || (dy === cy && Math.abs(dx) < cx)
+    }
+
+    if (dir === "LEFT") {
+        if (dx >= 0) return false
+        if (!current) return true
+        const cx = current.x - origin.x
+        const cy = Math.abs(current.y - origin.y)
+        return (-dx < -cx) || (-dx === -cx && Math.abs(dy) < cy)
+    }
+
+    if (dir === "RIGHT") {
+        if (dx <= 0) return false
+        if (!current) return true
+        const cx = current.x - origin.x
+        const cy = Math.abs(current.y - origin.y)
+        return (dx < cx) || (dx === cx && Math.abs(dy) < cy)
+    }
+
+    return false
 }
 
 export function getButton(s) {

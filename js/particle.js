@@ -1,4 +1,12 @@
-// Passionyte 2025
+/**
+ * ICS4U - Final Project (RST)
+ * Mr. Brash 🐿️
+ * 
+ * Title: particle.js
+ * Description: Creates and manages particles, allowing them to be displayed, animated and remvoed
+ *
+ * Author: Logan
+ */
 
 'use strict'
 
