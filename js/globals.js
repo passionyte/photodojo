@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: globals.js
- * Description: Global references used by other scripts, contains 'Object' class and other essentials.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -22,8 +14,8 @@ export const CANVAS = d("CANVAS")
 export const VIDEO = d("feed")
 export const helperCANVAS = d("helper")
 
-export const w = CANVAS.clientWidth
-export const h = CANVAS.clientHeight
+export const w = CANVAS.width
+export const h = CANVAS.height
 export const cenX = (w / 2)
 export const cenY = (h / 2)
 
@@ -34,14 +26,15 @@ export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
 
 export const Live = (document.URL.includes("passionyte.github.io"))
-export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
+//export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
+export const URL = ""
 
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
 export const FR = new FileReader()
 
-export let VERSION = "alpha 0.6.0"
+export let VERSION = "alpha 0.6.1"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`

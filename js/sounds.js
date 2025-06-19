@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: sounds.js
- * Description: Sound engine script that will create, store and play sounds.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -15,7 +7,7 @@ import { URL } from "./globals.js"
 export const SoundMemory = {}
 
 export function newSound(save, src, v, l) {
-    const s = new Audio((URL + "snds/") + src) // combine the URL so our reference is found regardless if this is the preview or a live site
+    const s = new Audio((URL + "./snds/") + src) // combine the URL so our reference is found regardless if this is the preview or a live site
 
     s.volume = v || 0.1
     s.loop = (l)

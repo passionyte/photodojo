@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: button.js
- * Description: Fancy sprite button handler with selection and press compatibility (using keyboard)
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 import { img, text, font, CTX, fstyle } from "./globals.js"
 import { newImage } from "./images.js"
@@ -30,15 +22,17 @@ export const sbuttonbounds = {x: 0, y: 0, w: 78, h: 28}
 export const mbuttonbounds = {x: 0, y: 0, w: 94, h: 28}
 export const lbuttonbounds = {x: 0, y: 0, w: 158, h: 64}
 export const longbuttonbounds = {x: 0, y: 0, w: 158, h: 28}
+export const musicbuttonbounds = {x: 0, y: 0, w: 125, h: 27}
 
 export const sbuttonimgs = {i: "sbutton.png", s: "sbuttonsel.png", p: "sbuttonpress.png", l: "sbuttonlock.png"}
 export const mbuttonimgs = {i: "mbutton.png", s: "mbuttonsel.png", p: "mbuttonpress.png", l: "mbuttonlock.png"}
 export const lbuttonimgs = {i: "lbutton.png", s: "lbuttonsel.png", p: "lbuttonpress.png", l: "lbuttonlock.png"}
 export const longbuttonimgs = {i: "longbutton.png", s: "longbuttonsel.png", p: "longbuttonpress.png", l: "longbuttonlock.png"}
+export const musicbuttonimgs = {i: "musicbutton.png", s: "musicbuttonsel.png", p: "musicbuttonpress.png"}
 
 export class Button {
     name
-    state = "i" // current state of the button (i.e. i: idle, p: pressed, s: selected, h: highlighted)
+    state = "i" // current state of the button (i.e. i: idle, p: pressed, s: selected, l: locked)
     menu // menu the button belongs to
     position = {
         x: 0,   
@@ -139,39 +133,43 @@ export class Button {
 export function selectNew(dir, current, origin, next) {
     if (!next) return false
 
-    const dx = next.x - origin.x
-    const dy = next.y - origin.y
+    const dx = (next.x - origin.x)
+    const dy = (next.y - origin.y)
 
-    if (dir === "UP") {
+    if (dir == "UP") {
         if (dy >= 0) return false
         if (!current) return true
-        const cy = current.y - origin.y
-        const cx = Math.abs(current.x - origin.x)
-        return (-dy < -cy) || (-dy === -cy && Math.abs(dx) < cx)
+
+        const cy = (current.y - origin.y)
+        const cx = Math.abs((current.x - origin.x))
+        return (-dy < -cy) || (-dy == -cy && (Math.abs(dx) < cx))
     }
 
-    if (dir === "DOWN") {
+    if (dir == "DOWN") {
         if (dy <= 0) return false
         if (!current) return true
-        const cy = current.y - origin.y
-        const cx = Math.abs(current.x - origin.x)
-        return (dy < cy) || (dy === cy && Math.abs(dx) < cx)
+
+        const cy = (current.y - origin.y)
+        const cx = Math.abs((current.x - origin.x))
+        return (dy < cy) || (dy == cy && (Math.abs(dx) < cx))
     }
 
-    if (dir === "LEFT") {
+    if (dir == "LEFT") {
         if (dx >= 0) return false
         if (!current) return true
-        const cx = current.x - origin.x
-        const cy = Math.abs(current.y - origin.y)
-        return (-dx < -cx) || (-dx === -cx && Math.abs(dy) < cy)
+
+        const cx = (current.x - origin.x)
+        const cy = Math.abs((current.y - origin.y))
+        return (-dx < -cx) || (-dx == -cx && (Math.abs(dy) < cy))
     }
 
-    if (dir === "RIGHT") {
+    if (dir == "RIGHT") {
         if (dx <= 0) return false
         if (!current) return true
-        const cx = current.x - origin.x
-        const cy = Math.abs(current.y - origin.y)
-        return (dx < cx) || (dx === cx && Math.abs(dy) < cy)
+
+        const cx = (current.x - origin.x)
+        const cy = Math.abs((current.y - origin.y))
+        return (dx < cx) || (dx == cx && (Math.abs(dy) < cy))
     }
 
     return false

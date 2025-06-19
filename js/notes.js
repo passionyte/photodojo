@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: notes.js
- * Description: Contains long type out notes and descriptions for UI
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -98,6 +90,25 @@ export const Messages = {
         [1]: "is larger than 640x480.",
         [2]: "Please ensure it is 640x480",
         [3]: "to allow for proper dimensions."
+    },
+    welcome: {
+        [0]: "Welcome to Photo Dojo JS!",
+        [1]: "Please keep in mind:",
+        [2]: "This game is currently in dev."
+    },
+    started: {
+        [0]: "To get started:",
+        [1]: "Create your own fighter",
+        [2]: "or background to unlock",
+        [3]: "the Head Into Battle",
+        [4]: "button and have fun!"
+    },
+    imports: {
+        [0]: "You will need to",
+        [1]: "import and export the",
+        [2]: "fighters and backgrounds",
+        [3]: "you make each time you play.",
+        [4]: "Please ensure you do so."
     }
 }
 
@@ -114,6 +125,22 @@ export const menuTitles = {
     uploadsel: "Upload type",
     createbg: "Create background",
     createfighter: "Photo shoot"
+}
+
+export const songNames = {
+    na: "No Music",
+    rockandroll: "Rock and Roll",
+    electro: "Electro",
+    clubbeat: "Club Beat",
+    create: "Bonus Track"
+}
+
+export const songOrder = {
+    [0]: "na",
+    [1]: "rockandroll",
+    [2]: "electro",
+    [3]: "clubbeat",
+    [4]: "create"
 }
 
 export const photoOrder = {

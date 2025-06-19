@@ -90,7 +90,7 @@ export class Controller {
         const bind = this.findBindFromKeyCode(key)
 
         if (bind) {
-            if (!this.downKeys[key] && GAME.controls) {
+            if (!this.downKeys[key] && GAME.controls && (!GAME.paused)) {
                 this.downKeys[key] = true
 
                 if (bind.action) this.owner[bind.action]()

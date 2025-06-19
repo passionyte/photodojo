@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: main.js
- * Description: The core script that makes the game tick. Handles everything between UI, enemies, and utilizing the other modules.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -17,15 +9,14 @@ import {
 } from "./globals.js"
 import { Fighter, Fighters, Hitboxes, defHP, floorPos } from "./fighter.js"
 import { Animator, Animators, Timers } from "./animate.js"
-import { profile, saveData, exportData, importData, imported, filename } from "./profile.js"
+import { profile, defProfile, saveData, exportData, importData, imported, filename } from "./profile.js"
 import { ImageMemory, newImage } from "./images.js"
 import { SoundMemory, stopSound, playSound } from "./sounds.js"
 import { KEYS } from "./controller.js"
 import {
-    Button, Buttons, getButton, menuButtons, selectNew, sbuttonbounds, mbuttonbounds, lbuttonbounds, titlebuttonbounds, longbuttonbounds, menuButtonsActive,
-    sbuttonimgs, mbuttonimgs, lbuttonimgs, longbuttonimgs
+    Button, Buttons, getButton, menuButtons, selectNew, sbuttonbounds, mbuttonbounds, lbuttonbounds, titlebuttonbounds, longbuttonbounds, musicbuttonbounds, sbuttonimgs, mbuttonimgs, lbuttonimgs, longbuttonimgs, musicbuttonimgs, menuButtonsActive
 } from "./button.js"
-import { Notes, modeDescriptions, menuTitles, Messages, photoOrder } from "./notes.js"
+import { Notes, modeDescriptions, menuTitles, Messages, photoOrder, songNames, songOrder } from "./notes.js"
 import { Particles } from "./particle.js"
 import { Camera } from "./camera.js"
 import { Game } from "./game.js"
@@ -44,6 +35,8 @@ let modeToSelect = 1 // reserved for the background select (linking to game init
 let selectedBackground // background chosen by player (for the game)
 let photoNum = 0 // current fighter photo being taken (i.e. 3 = fireball)
 let editingFighter = 0 // current fighter being edited
+let shownWelcomeMessage = (profile != defProfile) // self explanatory
+let lockNav = false // locks navigation in menus
 
 let vW // last known video width
 let vH // last known video height
@@ -80,7 +73,7 @@ const createNote = {
 // title screen
 new Button("battle", "title", "battlebutton.png", { press: "titlebutton.wav" }, titlebuttonbounds, (cenX + 56), cenY, function () {
     GAME.menu = "modeselect"
-})
+}, undefined, "l")
 new Button("create", "title", "createbutton.png", { press: "titlebutton.wav" }, titlebuttonbounds, (cenX - 280), cenY, function () {
     transition(function () {
         GAME.menu = "createselect"
@@ -119,7 +112,7 @@ new Button("newfighter", "createselect", lbuttonimgs,
             GAME.menu = "fighternext"
             createNote.strs = {}
         })
-    }, { text: "Make a new fighter!", font: "Humming", size: 28 })
+    }, { text: "Make a new fighter!", font: "Humming", size: 28 }, "l")
 new Button("editfighter", "createselect", lbuttonimgs,
     { press: "createbutton.wav" }, lbuttonbounds, (cenX + 100), 275, function () {
         transition(function () {
@@ -277,7 +270,8 @@ new Button("uploadbg", "newbackground", lbuttonimgs,
                         else {
                             imported.backgrounds[backgroundSlot] = compress(i, 640, 480) // save the compressed image
                         }
-
+                        const battle = getButton("battle")
+                        if (battle.state == "l") battle.state = "i"
                     }
                     messageBox(`Upload ${((bg) && "successful") || "failed"}!`, true)
                 }
@@ -329,6 +323,9 @@ new Button("bgsave", "backgroundsave", lbuttonimgs,
         backgroundSlot = null
 
         menuButtonsActive(true)
+
+        const battle = getButton("battle")
+        if (battle.state == "l") battle.state = "i"
     }, { text: "Save", font: "Humming", size: 28 })
 new Button("bgtryagain", "backgroundsave", lbuttonimgs,
     { press: "createbutton.wav" }, lbuttonbounds, (cenX + 100), 275, function () {
@@ -371,9 +368,16 @@ new Button("import", "title", mbuttonimgs,
                     FR.onload = event => {
                         // import data.
                         const result = importData(event.target.result)
+                        const bgs = adtLen(result.backgrounds)
+
+                        if (bgs > 0) {
+                            const battle = getButton("battle")
+                            if (battle.state == "l") battle.state = "i"
+                        }
+
                         messageBox({
                             [0]: "Successfully imported:",
-                            [1]: `${adtLen(result.fighters)} fighters and ${adtLen(result.backgrounds)} backgrounds.`,
+                            [1]: `${adtLen(result.fighters)} fighters and ${bgs} backgrounds.`,
                             [2]: `Data size: ${toBytes(exports.size)}`
                         }, true)
                     }
@@ -413,6 +417,9 @@ new Button("closecontrols", "controls", sbuttonimgs,
             }, 1000)
         }
     }, { text: "Close", font: "Humming", size: 24 })
+// results
+new Button("return", "results", lbuttonimgs,
+    { press: "createbutton.wav" }, lbuttonbounds, (cenX - 400), (cenY + 200), endMatch, { text: "Return to title screen!", font: "Humming", size: 24 })
 // vs results
 new Button("return", "vsresults", lbuttonimgs,
     { press: "createbutton.wav" }, lbuttonbounds, (cenX - 150), (cenY + 200), endMatch, { text: "Return to title screen!", font: "Humming", size: 24 })
@@ -424,14 +431,14 @@ for (let z = 0; (z < 8); z++) {
         function () {
             selectedBackground = z
             transition(function () { loadGame(modeToSelect) })
-        }
+        }, undefined, "l"
     )
 }
 new Button("selectbgback", "selectbg", sbuttonimgs, { press: "titlecancel.wav" }, sbuttonbounds, 40, (h - 100), function () {
     // change to fighter select later
     transition(function () {
         GAME.menu = "title"
-        stopSound("battle.mp3")
+        if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
     })
 }, { text: "Back", font: "Humming", size: 30 })
 new Button("fightertakephoto", "createfighter", longbuttonimgs, { press: "createbutton.wav" }, longbuttonbounds, cenX, (h - 300), function () {
@@ -472,8 +479,24 @@ new Button("fightertryagain", "fightersave", lbuttonimgs,
         curCam.init()
         GAME.buttonLayout = null
     }, { text: "Try again", font: "Humming", size: 28 })
+new Button("music", "selectbg", musicbuttonimgs, undefined, musicbuttonbounds, (w - 325), (cenY + 325), function () {
+    if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
 
-let selBut = getButton("battle")
+    let len = (adtLen(songOrder) - 1)
+
+    if (profile.best.rank == "Fail") len--
+
+    if (profile.track < len) {
+        profile.track++
+    }
+    else {
+        profile.track = 0
+    }
+
+    saveData(profile)
+}, { text: "Switch music", font: "Humming", size: 28 })
+
+let selBut = getButton("create")
 selBut.state = "s"
 
 // SINGLE PLAYER VARIABLES
@@ -518,7 +541,7 @@ function keyup(event) {
 function keypress(event) {
     const key = event.keyCode
 
-    if (downKeys[key]) return
+    if (downKeys[key] || lockNav) return
     downKeys[key] = true
 
     if (msgBox.visible && msgBox.pass) {
@@ -618,7 +641,7 @@ new Animator("flame", "frame", 400, 1, { goal: 3, endSet: 0 })
 new Animator("bgflame", "frame", 400, 1, { goal: 5, endSet: 0 })
 new Animator("controlsin", "tween", 400, 1, { obj: controls, prop: { x: (cenX - 100) } })
 new Animator("controlsout", "tween", 400, 1, { obj: controls, prop: { x: w } }, function () {controls.x = -w})
-new Animator("controlsvsin", "tween", 400, 1, { obj: controls, prop: { x: (cenX - 150) } })
+new Animator("controlsvsin", "tween", 400, 1, { obj: controls, prop: { x: (cenX - 175) } })
 new Animator("controlsvsout", "tween", 400, 1, { obj: controls, prop: { x: w } }, function () {controls.x = -w})
 
 // Functions
@@ -641,10 +664,11 @@ function cleanup() {
 }
 
 function endMatch(menu = "title", bl) { // Force ends the match (un-naturally)
-    Animators.blackin.play()
+    if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
 
-    setTimeout(function () {
+    transition(function () {
         // reset/clear everything and proceed back to a menu
+        stopSound("results.mp3")
         GAME.menu = menu
         GAME.started = false
         GAME.controls = false
@@ -657,8 +681,7 @@ function endMatch(menu = "title", bl) { // Force ends the match (un-naturally)
             a = Animators[a]
             if (a != Animators.blackin && a != Animators.blackout) a.stop(true)
         }
-        Animators.blackout.play()
-    }, 1000)
+    })
 }
 
 function messageBox(strs, pass, cb) { // Opens a message box that can be closed by the player upon input (or through other means if pass is false)
@@ -674,7 +697,7 @@ function messageBox(strs, pass, cb) { // Opens a message box that can be closed 
 }
 
 function determineAutoSelect(b) {
-    if (selBut && (selBut.menu != GAME.menu && (!GAME.buttonLayout || selBut.menu != GAME.buttonLayout) && (b.state != "l"))) { // Always select a button that is *not* locked from a new menu
+    if (selBut && (selBut.menu != GAME.menu && (!GAME.buttonLayout || selBut.menu != GAME.buttonLayout)) && (b.state != "l")) { // Always select a button that is *not* locked from a new menu
         selBut.state = "i"
         selBut = b
         b.canpress = true
@@ -709,11 +732,14 @@ function queueNote() {
 }
 
 function loadGame(m = 1) { // Load the game after the loading screen
-    stopSound("title.mp3")
+    cleanup() // run another cleanup to make sure things are cleaned from last match
 
     GAME.mode = m
 
     GAME.menu = "loading"
+
+    if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
+
     GAME.nextMenu = null
 
     setTimeout(function () {
@@ -849,6 +875,9 @@ function initializeGame(delay) {
     P1 = new Fighter(((GAME.single) && cenX) || 100, floorPos, 1)
     P1.update()
 
+    // Start music
+    if (profile.track != "na") playSound(`${songOrder[profile.track]}.mp3`)
+
     if (GAME.single) { // singleplayer
         distSinceLastGuy = 0
         lastGuySpawned = 0
@@ -885,7 +914,7 @@ function update() {
     if (!GAME.menu) {
         // Handle background
 
-        let bg = ImageMemory["background.jpg"]
+        let bg = ImageMemory["background.jpg"] // fallback
 
         const custom = imported.backgrounds[selectedBackground]
         if (custom) bg = newImage(custom, true)
@@ -1072,6 +1101,7 @@ function update() {
             if (clearText.visible) img(ImageMemory["clear.png"], 0, 0, 128, 64, (clearText.x - 125), (clearText.y - 25), 400, 200)
 
             if (!P1.alive || ((enemiesRemaining <= 0)) && GAME.started && GAME.controls) {
+                if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
                 GAME.controls = false
 
                 if (P1.alive) { // player has won
@@ -1109,6 +1139,8 @@ function update() {
             a1 = P1.alive
             a2 = P2.alive
             if ((!a1 || !a2) && GAME.controls) {
+                if (profile.track != "na") stopSound(`${songOrder[profile.track]}.mp3`)
+
                 GAME.controls = false
 
                 let delay = 2000
@@ -1148,9 +1180,75 @@ function update() {
         // Handle controls
         if (GAME.single) {
             img(ImageMemory["controls.png"], 0, 0, 150, 340, controls.x, controls.y, 262, 520)
+
+            fstyle("white")
+            font("24px Humming")
+            text("1P", (controls.x + 75), (controls.y + 30))
+            font("22px Humming")
+            text("Controls", (controls.x + 160), (controls.y + 30))
+
+            fstyle("red")
+            font("20px Humming")
+
+            text("March", (controls.x + 50), (controls.y + 75))
+            text("Jump", (controls.x + 50), (controls.y + 125))
+            text("Duck", (controls.x + 50), (controls.y + 175))
+            text("Punch", (controls.x + 50), (controls.y + 225))
+            text("Kick", (controls.x + 50), (controls.y + 275))
+            text("Fireball", (controls.x + 50), (controls.y + 325))
+            text("Taunt", (controls.x + 50), (controls.y + 375))
+
+            fstyle("gray")
+            font("18px Humming")
+
+            text("A/D", (controls.x + 175), (controls.y + 75))
+            text("W", (controls.x + 175), (controls.y + 125))
+            text("S", (controls.x + 175), (controls.y + 175))
+            text("-> + P", (controls.x + 175), (controls.y + 225))
+            text("P", (controls.x + 175), (controls.y + 275))
+            text("<- + P", (controls.x + 175), (controls.y + 325))
+            text("O", (controls.x + 175), (controls.y + 375))
         }
         else {
             img(ImageMemory["controlsvs.png"], 0, 0, 246, 332, controls.x, controls.y, 431, 531)
+
+            fstyle("white")
+            font("24px Humming")
+            text("Player 1", (controls.x + 75), (controls.y + 30))
+            text("Player 2", (controls.x + 355), (controls.y + 30))
+            font("22px Humming")
+            text("Controls", (controls.x + 215), (controls.y + 30))
+
+            fstyle("gray")
+            font("20px Humming")
+
+            text("March", (controls.x + 215), (controls.y + 75))
+            text("Jump", (controls.x + 215), (controls.y + 125))
+            text("Duck", (controls.x + 215), (controls.y + 175))
+            text("Punch", (controls.x + 215), (controls.y + 225))
+            text("Kick", (controls.x + 215), (controls.y + 275))
+            text("Fireball", (controls.x + 215), (controls.y + 325))
+            text("Taunt", (controls.x + 215), (controls.y + 375))
+
+            fstyle("red")
+            font("18px Humming")
+
+            text("A/D", (controls.x + 50), (controls.y + 75))
+            text("W", (controls.x + 50), (controls.y + 125))
+            text("S", (controls.x + 50), (controls.y + 175))
+            text("-> + P", (controls.x + 50), (controls.y + 225))
+            text("P", (controls.x + 50), (controls.y + 275))
+            text("<- + P", (controls.x + 50), (controls.y + 325))
+            text("O", (controls.x + 50), (controls.y + 375))
+
+            fstyle("blue")
+            text("LTA/RTA", (controls.x + 355), (controls.y + 75))
+            text("UPA", (controls.x + 355), (controls.y + 125))
+            text("DNA", (controls.x + 355), (controls.y + 175))
+            text("<- + NUM3", (controls.x + 355), (controls.y + 225))
+            text("NUM3", (controls.x + 355), (controls.y + 275))
+            text("-> + NUM3", (controls.x + 355), (controls.y + 325))
+            text("NUM.", (controls.x + 355), (controls.y + 375))
         }
 
         if (DEBUG) { // round debug info
@@ -1192,6 +1290,23 @@ function update() {
             fstyle("yellow")
             font("24px Humming")
             text(VERSION, cenX, (cenY - 100))
+
+            if (!shownWelcomeMessage) {
+                shownWelcomeMessage = true
+                messageBox(Messages.welcome, true, function () {
+                    lockNav = true
+                    setTimeout(function() {
+                        lockNav = false
+                        messageBox(Messages.started, true, function () {
+                            lockNav = true
+                            setTimeout(function() {
+                                lockNav = false
+                                messageBox(Messages.imports, true)
+                            }, 500)
+                        })
+                    }, 500) 
+                })
+            }
         }
         else if (GAME.menu == "results") {
             playSound("results.mp3")
@@ -1211,6 +1326,7 @@ function update() {
             fstyle("white")
 
             if (rank == "Fail") { // Player failed the survival mode
+                CTX.textAlign = "left"
                 font("50px Humming")
                 text("Score", (cenX + 115), (cenY - 200), 200)
                 img(ImageMemory["scoreboxlarge.png"], 0, 0, 128, 38, (cenX + 115), (cenY - 160), 450, 128)
@@ -1248,6 +1364,7 @@ function update() {
             else { // Player cleared the survival mode
                 img(ImageMemory["survivalclear.png"], 0, 0, 512, 256, -400, -200, 1200, 600)
 
+                CTX.textAlign = "left"
                 text("Health", (cenX + 115), (cenY - 200))
                 text("Time", (cenX + 115), (cenY - 100))
 
@@ -1481,7 +1598,9 @@ function update() {
             }
         }
         else if (GAME.menu == "selectbg") {
-            playSound("battle.mp3")
+            const songName = songOrder[profile.track]
+            
+            playSound(`${songName}.mp3`)
 
             img(ImageMemory["selectbg.png"], 0, 0, 256, 256, 0, 0, w, (h * 1.33))
 
@@ -1492,6 +1611,11 @@ function update() {
             CTX.beginPath()
             CTX.roundRect((cenX + 50), (cenY - 220), 520, 440, 60)
             CTX.fill()
+
+            img(ImageMemory["radio.png"], 0, 0, 334, 43, (w - 700), (cenY + 225), 668, 86)
+
+            font("28px Humming")
+            text(songNames[songName], (w - 375), (cenY + 280))
         }
         else if (GAME.menu == "createfighter") {
             img(ImageMemory["createfighter.png"], 0, 0, 1200, 800, 0, 0, w, h)

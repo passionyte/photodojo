@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: profile.js
- * Description: Handles saving and loading player profiles.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -18,7 +10,7 @@ export const defProfile = {
         rank: "Fail",
         enemies: 0
     },
-    track: "rockandroll" // music track player selected
+    track: 1 // music track player selected
 }
 
 const key = "PhotoDojoJS" // localStorage key

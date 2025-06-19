@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: game.js
- * Description: Handles game state, mode and menus (with useful getters/setters to shorten typing)
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 

@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: images.js
- * Description: Handles image memory and creation.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -19,7 +11,7 @@ export function newImage(n, e) { // e is external; meaning external URL
     if (i) return i
 
     i = new Image()
-    i.src = e && n || (URL + "imgs/") + n || "template.jpg" // ensure the image can be found
+    i.src = e && n || (URL + "./imgs/") + n || "template.jpg" // ensure the image can be found
 
     ImageMemory[n] = i // log to memory
 
@@ -118,6 +110,10 @@ newImage("createbgtake.png")
 newImage("stancemask.png")
 newImage("controls.png")
 newImage("controlsvs.png")
+newImage("radio.png")
+newImage("musicbutton.png")
+newImage("musicbuttonsel.png")
+newImage("musicbuttonpress.png")
 
 for (let i = 0; (i < 6); i++) newImage(`ready${i}.png`)
 for (let i = 0; (i < 12); i++) newImage(`attack${i}.png`)
