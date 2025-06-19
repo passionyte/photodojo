@@ -17,7 +17,7 @@ canvas {
     src: url('./fonts/NITROLC.ttf')
 }
 
-a {
+a, p {
     font-family: Nitro
 }
 
@@ -29,6 +29,10 @@ a {
 .subtitle {
     font-size: 1.5vw;
     font-weight: bold
+}
+
+.small {
+    font-size: 1vw;
 }
 
 .center {

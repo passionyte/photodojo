@@ -1,19 +1,11 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: fighter.js
- * Description: Handles the 'Fighter' and 'Hitbox' class, integral to the gameplay.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
 import { Object, DEBUG, FLOOR, GRAVITY, CTX, w, collision, clamp, img } from "./globals.js"
 import { initialLeft, GAME } from "./main.js"
 import { Timer, Animators } from "./animate.js"
-import { newImage } from "./images.js"
+import { newImage, ImageMemory } from "./images.js"
 import { Controller } from "./controller.js"
 import { Particle } from "./particle.js"
 import { playSound } from "./sounds.js"
@@ -53,10 +45,15 @@ const FighterTimers = { // What timers to create + duration
     lag: 0
 }
 
-const floorPos = (FLOOR - 258) // 258 is the stance height
+export const floorPos = (FLOOR - 258) // 258 is the stance height
 
 export const Fighters = []
 export const Hitboxes = []
+
+// for some reason creating dust effects messes up the fighter thread so we'll move it here
+function createDust(f) {
+    if (f.left < rightConstraint && f.left > leftConstraint) new Particle(f.left, (floorPos + (f.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
+}
 
 export class Hitbox extends Object {
     dmg // damage applied to player
@@ -116,8 +113,9 @@ export class Hitbox extends Object {
 
     draw() {
         const i = this.img
+        if (this.type == "fireball") img(ImageMemory["fireball.png"], 0, 0, 128, 128, (this.absLeft - 16), (this.top - 16), (this.width + 32), (this.height + 32))
         if (i) img(i, this.bounds.x, this.bounds.y, this.bounds.w, this.bounds.h, this.absLeft, this.top, this.width, this.height)
-            
+
         if (DEBUG) super.draw("rgba(200, 200, 0, 0.5)") // draw the hitbox if in debug mode
     }
 
@@ -164,6 +162,7 @@ export class Fighter extends Object {
     img
     bounds // derived from state in stateBounds
     shadow // shadow image under Fighter's feet
+    sounds = {} // sounds to play
 
     get t () { // for convenience
         return this.timers
@@ -200,10 +199,6 @@ export class Fighter extends Object {
 
         this.marchLock = (crouchDesired)
         this.state = ((crouchDesired) && "crouch") || ((xv != 0) && "march") || "stance"
-    }
-
-    dust() { // helper function for dust
-        if (this.left < rightConstraint && this.left > leftConstraint) new Particle(this.left, (floorPos + (this.height / 2)), 0, -2, 128, 128, "dust", "dust.png", Bounds32, 300, {alpha: 0, sw: 256, sh: 256})
     }
 
     update() {
@@ -259,7 +254,7 @@ export class Fighter extends Object {
                         this.position.y = floorPos
                         this.velocity.y = 0
 
-                        this.dust()
+                        createDust(this)
                     }
                     else { // landing while fallen over
                         if (this.bounces > 0) { // we need to bounce the player a bit
@@ -268,7 +263,7 @@ export class Fighter extends Object {
                             if (this.velocity.x != 0) this.velocity.x *= 0.75
                             this.bounces--
 
-                            this.dust()
+                            createDust(this)
                         }
                         else { // end this
                             this.position.y = floorPos
@@ -285,7 +280,7 @@ export class Fighter extends Object {
                 if (!this.marchLock && this.state != "hurt" && this.state != "taunt" && this.state != "victory") {
                     this.state = ((this.velocity.x == 0) && "stance") || "march"
                 }
-            }false
+            }
 
             if (this.state == "crouch") this.velocity.x = 0 // shouldn't be able to move while crouching!
 
@@ -317,7 +312,7 @@ export class Fighter extends Object {
                 this.state = "shoot"
 
                 const x = ((!this.lefty) && (this.right + 20)) || (this.left - 120)
-                new Hitbox(x, this.top, ((this.lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.jpg", FireballBounds, true)
+                new Hitbox(x, this.top, ((this.lefty) && -5) || 5, 0, 128, 128, "fireball", this, 2, 10000, "template.png", FireballBounds, true)
             }
         }
 
@@ -484,8 +479,6 @@ export class Fighter extends Object {
 
     punch() { 
         if (this.grounded && this.canAttack) {
-            this.dust()
-
             this.marchLock = true
             this.state = "punch"
 
@@ -495,6 +488,8 @@ export class Fighter extends Object {
 
             const x = ((!this.lefty) && (this.right + 40)) || (this.left - 60)
             new Hitbox(x, (this.top + 25), 0, 0, 64, 32, "punch", this, 3, 200)
+
+            createDust(this)
         }
     }
 
@@ -573,7 +568,7 @@ export class Fighter extends Object {
         }
     }
 
-    constructor(x, y, plr, facing = "right", state = "stance", hp = defHP, name = "template") {
+    constructor(x, y, plr, facing = "right", state = "stance", hp = defHP, name = "template", sounds) {
         const bounds = stateBounds[state]
 
         if (!bounds) {
@@ -589,10 +584,11 @@ export class Fighter extends Object {
         this.state = state
         this.name = name
         this.plr = plr
-        this.img = newImage(`${name}.jpg`)
+        this.img = newImage(`${name}.png`)
         this.shadow = newImage("shadow.png")
         this.bounds = bounds
         this.facing = facing
+        this.sounds = sounds
 
         for (const nm in FighterTimers) this.timers[nm] = new Timer(nm, (FighterTimers[nm]))
 

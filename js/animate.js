@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: animate.js
- * Description: Handles UI 'Animator' classes and 'Timer' classes.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -39,6 +31,7 @@ export class Animator {
     times = -1
     timesGoal = 0
     flashing
+    endSet = -1
 
     // tween properties
     object
@@ -78,9 +71,9 @@ export class Animator {
                 const pP = this.properties[p]
                 const sP = this.startProps[p]
 
-                v = sP + ((pP - sP) * div)
+                v = sP + ((pP - sP) * div) // simple linear function to determine value for this tick
 
-                this.object[p] = (Math.floor(v * 100) / 100)
+                this.object[p] = v // very important we don't round any results.. it will lead to glitchy effects.
             }
 
             // reached our goal, end
@@ -185,14 +178,13 @@ export class Animator {
         if (this.interval) clearInterval(this.interval)
 
         setTimeout(() => { // Reset everything we need to
-            //if (this.interval) clearInterval(this.interval)
-
             // convenience variables
             const t = (this.type == "tween")
             const to = (this.type == "typeout")
 
+
             if (this.type.includes("frame")) {
-                this.times = -1
+                this.times = this.endSet
             }
             else if (t || to) {
                 if (t) {
@@ -201,14 +193,14 @@ export class Animator {
                     this.startProps = {}
                 }
                 else {
-                    this.times = -1
+                    this.times = this.endSet
                     this.lineTarg = 0
                     this.textGoals = null
 
                     if (force) this.textObj.strs = {} // issue encountered, clear strs
                 }
                 
-                this.start = -1
+                this.start = this.endSet
             }
 
             this.ended = true
@@ -234,6 +226,7 @@ export class Animator {
         if (this.type.includes("frame")) {
             this.timesGoal = dat.goal
             this.times = -1
+            if (dat.endSet != undefined) this.endSet = dat.endSet
 
             if (this.type == "flashframe") this.flashing = false
         }

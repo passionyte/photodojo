@@ -1,12 +1,4 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: globals.js
- * Description: Global references used by other scripts, contains 'Object' class and other essentials.
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
@@ -22,24 +14,27 @@ export const CANVAS = d("CANVAS")
 export const VIDEO = d("feed")
 export const helperCANVAS = d("helper")
 
-export const w = CANVAS.clientWidth
-export const h = CANVAS.clientHeight
+export const w = CANVAS.width
+export const h = CANVAS.height
 export const cenX = (w / 2)
 export const cenY = (h / 2)
 
-export const CTX = CANVAS.getContext("2d")
-export const helperCTX = helperCANVAS.getContext("2d")
+export const CTX = CANVAS.getContext("2d", {alpha: true})
+export const helperCTX = helperCANVAS.getContext("2d", {alpha: true})
 
 export const FPS = 60
 export const MS_PER_FRAME = (1000 / FPS)
 
 export const Live = (document.URL.includes("passionyte.github.io"))
-export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
+//export const URL = ((!Live) && "../") || "https://raw.githubusercontent.com/passionyte/photodojo/refs/heads/main/"
+export const URL = ""
 
 export const FLOOR = (h - 100)
 export const GRAVITY = 0.75
 
-export let VERSION = "alpha 0.4.5"
+export const FR = new FileReader()
+
+export let VERSION = "alpha 0.6.1"
 
 if (!Live) {
     document.title = `[DEV] ${document.title}`
@@ -83,14 +78,39 @@ export function adtLen(a) {
     return result
 }
 
-export function promptUpload() {
+export function promptUpload() { // User is prompted to upload a file
     const i = document.createElement("input")
 
     i.type = "file"
-
-    i.click()
+    i.click() // forces the file upload window to open (differs between OS)
 
     return i // the acceptor will handle removing it
+}
+
+const bytes = { // I don't think people will have imports larger than MB...
+    [1e3]: "KB",
+    [1e6]: "MB"
+}
+
+export function toBytes(x) {
+    let ab = "B" // least is obviously just bytes
+
+    for (const size in bytes) {
+        if (x >= size) { // technically the numbers from bytes aren't "accurate" but it's good enough
+            ab = bytes[size]
+
+            x /= size
+        }
+    }
+
+    return `${(Math.floor((x * 100)) / 100)} ${ab}` // implement into a string and return
+}
+
+export function compress(img, w, h) {
+    helperCTX.clearRect(0, 0, helperCANVAS.width, helperCANVAS.height)
+    helperCTX.drawImage(img, 0, 0, img.width, img.height, 0, 0, w, h)
+
+    return helperCANVAS.toDataURL("image/png")
 }
 
 // Shortcut/Helper functions
@@ -102,6 +122,39 @@ export function fstyle(str) { CTX.fillStyle = str }
 
 export function parse(a) { return JSON.parse(a) }
 export function stringify(a) { return JSON.stringify(a) }
+
+export class UIObject {
+    position = {
+        x: 0,
+        y: 0
+    }
+
+    visible = false // for now
+
+    get x() {
+        return this.position.x
+    }
+
+    get y() {
+        return this.position.y
+    }
+
+    set x(a) {
+        this.position.x = a
+    }
+
+    set y(a) {
+        this.position.y = a
+    }
+
+    constructor(x, y, ext) {
+        this.position.x = x
+        this.position.y = y
+
+        // for extra variables
+        for (let s in ext) this[s] = ext[s]
+    }
+}
 
 export class Object { // The base for anything *scripted* that will appear on the 2D field
     position = {

@@ -1,16 +1,9 @@
-/**
- * ICS4U - Final Project (RST)
- * Mr. Brash 🐿️
- * 
- * Title: camera.js
- * Description: The core script that manages the camera for streaming user content, to a specific box on the canvas (optionally) and taking photos in base64 format (for now)
- *
- * Author: Logan
- */
+// Passionyte 2025
 
 'use strict'
 
 import { VIDEO, helperCANVAS, helperCTX, DEBUG } from "./globals.js"
+import { ImageMemory } from "./images.js"
 
 export class Camera {
     active = false
@@ -19,7 +12,7 @@ export class Camera {
     video
     helper // represents a helper canvas for getting the contents of video
 
-    init() {
+    init(cb) { // 'cb' represents a callback
         if (DEBUG) globalThis.cam = this
         if (!this.active) {
             // initialize the user's web cam as our source
@@ -27,10 +20,14 @@ export class Camera {
             .then((stream) => {
                 this.video.srcObject = stream
                 this.video.play()
+
+                if (cb) cb(true)
             })
             .catch((err) => { // got an error, disable
                 console.error(err)    
                 this.active = false
+
+                if (cb) cb(false)
             })
 
             this.video.listener = this.video.addEventListener("canplay", (ev) => {
@@ -60,6 +57,7 @@ export class Camera {
     photo() {
         // return the 'photo'
         helperCTX.drawImage(this.video, 0, 0, this.width, this.height)
+
         if (this.active) return this.helper.toDataURL("image/png")
 
         return false
@@ -80,7 +78,7 @@ export class Camera {
         catch (e) {}
     }
 
-    constructor(v = VIDEO, helper = helperCANVAS, w = 600, h = 400) {
+    constructor(v = VIDEO, helper = helperCANVAS, w = 640, h = 480) {
         this.video = v
         this.helper = helper
         this.helperCTX = helper.getContext("2d") || helperCTX
